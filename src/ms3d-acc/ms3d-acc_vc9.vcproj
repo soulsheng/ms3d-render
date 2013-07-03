@@ -17,7 +17,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="../../../bin/$(ConfigurationName)"
+			OutputDirectory="../../bin/$(ConfigurationName)"
 			IntermediateDirectory="../../../../obj/$(ConfigurationName)/$(ProjectName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
@@ -49,12 +49,14 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(ProjectDir)..\..\dependence\include\"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\dependence\include\&quot;;&quot;$(ProjectDir)..\..\dependence\include\cuda&quot;;&quot;$(ProjectDir)..\..\dependence\include\cuda\common&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				PrecompiledHeaderFile=".\Debug/Lesson31.pch"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="stdafx.h"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -113,7 +115,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="../../../bin/$(ConfigurationName)"
+			OutputDirectory="../../bin/$(ConfigurationName)"
 			IntermediateDirectory="../../../../obj/$(ConfigurationName)/$(ProjectName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
@@ -151,7 +153,9 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/Lesson31.pch"
+				UsePrecompiledHeader="2"
+				PrecompiledHeaderThrough="stdafx.h"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -175,7 +179,7 @@
 				OutputFile="$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\dependence\lib\share\&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\share\cuda\&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\share\cuda\common&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\$(ConfigurationName)\cuda&quot;"
+				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\dependence\lib\share\&quot;;&quot;$(ProjectDir)..\..\dependence\lib\share\cuda\&quot;;&quot;$(ProjectDir)..\..\dependence\lib\share\cuda\common&quot;;&quot;$(ProjectDir)..\..\dependence\lib\$(ConfigurationName)\cuda&quot;"
 				ProgramDatabaseFile="$(OutDir)/$(TargetName).pdb"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
@@ -262,6 +266,26 @@
 				RelativePath=".\ms3d-acc.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\stdafx.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -279,11 +303,55 @@
 				RelativePath="Model.h"
 				>
 			</File>
+			<File
+				RelativePath=".\stdafx.h"
+				>
+			</File>
+			<File
+				RelativePath=".\StructMS3D.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
+		</Filter>
+		<Filter
+			Name="Math"
+			>
+			<File
+				RelativePath=".\math\math2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\math\matrix.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\math\matrixImplementation.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\math\quaternion.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\math\quaternionImplementation.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\math\vector.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\math\vectorImplementation.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\math\vgkTimer.h"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

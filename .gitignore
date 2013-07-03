@@ -7,3 +7,6 @@
 /src/ms3d-acc/*.user
 /src/*.suo
 /src/ms3d-acc/*.ncb
+/bin/Debug/*.pdb
+/bin/Debug/*.ilk
+/src/*.ncb

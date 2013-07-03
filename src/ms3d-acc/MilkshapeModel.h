@@ -16,6 +16,7 @@
 
 #include "Model.h"
 
+
 class MilkshapeModel : public Model
 {
 	public:
@@ -30,6 +31,40 @@ class MilkshapeModel : public Model
 				filename			Model filename
 		*/
 		virtual bool loadModelData( const char *filename );
+
+		
+		/*
+			Draw the model.
+		*/
+		virtual void draw();
+		
+		virtual void Setup();
+
+	protected:
+		void initializeVBO();
+
+		void renderVBO();
+
+		void modifyVBO();
+
+		void createVBO(GLuint* vbo, unsigned int size, void* pData = NULL, int type = GL_ARRAY_BUFFER_ARB, int usage = GL_STATIC_DRAW);
+
+	protected:
+		void initializeVBOAttribute();
+		void initializeVBOMesh();
+
+protected:
+	void PreSetup();
+
+protected:	
+
+		GLuint	_idVBOAttrib;
+		
+		GLuint	_idVBOVertexArray;
+
+		//GLuint	_idVBOFaceIndex;
+		VboMetaFaceStruct* _metaFaces;
+
 };
 
 #endif // ndef MILKSHAPEMODEL_H

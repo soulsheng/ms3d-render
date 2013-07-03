@@ -1,17 +1,20 @@
+#include "stdafx.h"
 #include "DrawScene.h"
 
+#define FILENAME_MS3D "data/tortoise.ms3d"
+//#define FILENAME_MS3D "data/Dophi.ms3d"
 
 int DrawScene::DrawGLScene( )
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);				// Clear The Screen And The Depth Buffer
 	glLoadIdentity();												// Reset The Modelview Matrix
-	gluLookAt( 75, 75, 75, 0, 0, 0, 0, 1, 0 );						// (3) Eye Postion (3) Center Point (3) Y-Axis Up Vector
+	gluLookAt( 75, 75, 575, 0, 0, 0, 0, 1, 0 );						// (3) Eye Postion (3) Center Point (3) Y-Axis Up Vector
 
 	glRotatef(yrot,0.0f,1.0f,0.0f);									// Rotate On The Y-Axis By yrot
 
 	long timerBeginMiliSecond = clock();
 	
-	int nRepeat = 100;
+	int nRepeat = 10;
 	for(int nIndex = 0; nIndex < nRepeat; nIndex++ )
 	{
 		m_model.draw();													// Draw The Model
@@ -21,21 +24,30 @@ int DrawScene::DrawGLScene( )
 
 	long timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
 
-	//if ( timeElapsed > 1 )
-	{
-		cout << "äÖÈ¾ºÄÊ±Time Elapsed " << timeElapsed << endl;
-	}
+	cout << "äÖÈ¾ºÄÊ±Time Elapsed " << timeElapsed << endl;
+	
 
-	yrot+=1.0f;														// Increase yrot By One
+//	yrot+=1.0f;														// Increase yrot By One
 	return TRUE;
 }
 
 int DrawScene::InitGL( )
 {
-	AllocConsole(); 
-	freopen( "CONOUT$","w",stdout);
 
+	GLenum err = glewInit();
+	if (GLEW_OK != err)
+	{
+		/* Problem: glewInit failed, something is seriously wrong. */
+		::MessageBox(NULL,"glewInit failed, something is seriously wrong.",
+			"glew error occured.",MB_OK );
+		return false;
+	}
+#if CUDA_ENABLE
+	// cuda³õÊ¼»¯
+	cudaGLSetGLDevice( cutGetMaxGflopsDeviceId() );
+#endif
 
+	m_model.loadModelData(FILENAME_MS3D);
 	m_model.reloadTextures();										// Loads Model Textures
 
 	glEnable(GL_TEXTURE_2D);										// Enable Texture Mapping ( NEW )
@@ -45,6 +57,10 @@ int DrawScene::InitGL( )
 	glEnable(GL_DEPTH_TEST);										// Enables Depth Testing
 	glDepthFunc(GL_LEQUAL);											// The Type Of Depth Testing To Do
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);				// Really Nice Perspective Calculations
+
+	AllocConsole(); 
+	freopen( "CONOUT$","w",stdout);
+
 	return TRUE;
 }
 
@@ -55,4 +71,6 @@ bool DrawScene::loadModelData( string filename )
 		MessageBox( NULL, "Couldn't load the model data\\model.ms3d", "Error", MB_OK | MB_ICONERROR );
 		return 0;													// If Model Didn't Load Quit
 	}
+
+	return 1;
 }

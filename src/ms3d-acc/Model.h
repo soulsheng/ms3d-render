@@ -14,40 +14,12 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include "StructMS3D.h"
+#include "math/vgkTimer.h"
+
 class Model
 {
-	public:
-		//	Mesh
-		struct Mesh
-		{
-			int m_materialIndex;
-			int m_numTriangles;
-			int *m_pTriangleIndices;
-		};
-
-		//	Material properties
-		struct Material
-		{
-			float m_ambient[4], m_diffuse[4], m_specular[4], m_emissive[4];
-			float m_shininess;
-			GLuint m_texture;
-			char *m_pTextureFilename;
-		};
-
-		//	Triangle structure
-		struct Triangle
-		{
-			float m_vertexNormals[3][3];
-			float m_s[3], m_t[3];
-			int m_vertexIndices[3];
-		};
-
-		//	Vertex structure
-		struct Vertex
-		{
-			char m_boneID;	// for skeletal animation
-			float m_location[3];
-		};
+		
 
 	public:
 		/*	Constructor. */
@@ -65,16 +37,28 @@ class Model
 		/*
 			Draw the model.
 		*/
-		void draw();
+		virtual void draw();
+
+		virtual void Setup() = 0;
 
 		/*
 			Called if OpenGL context was lost and we need to reload textures, display lists, etc.
 		*/
 		void reloadTextures();
 
+protected:
+
+	void updateJoints(float fTime);
+
+	void modifyVertexByJoint();
+
+	void getPlayTime(float fSpeed, float fStartTime, float fEndTime, bool bLoop);
+	
+	void setupVertexArray();
+
 	protected:
 		//	Meshes used
-		int m_numMeshes;
+		int m_usNumMeshes;
 		Mesh *m_pMeshes;
 
 		//	Materials used
@@ -82,12 +66,39 @@ class Model
 		Material *m_pMaterials;
 
 		//	Triangles used
-		int m_numTriangles;
+		int m_usNumTriangles;
 		Triangle *m_pTriangles;
 
 		//	Vertices Used
-		int m_numVertices;
+		int m_usNumVerts;
 		Vertex *m_pVertices;
+
+		//	Joints used
+		int m_usNumJoints;
+		MS3DJoint*	m_pJoints;
+
+		//Total time for model animation
+		float m_fTotalTime;
+
+		Ms3dIntervelData m_meshVertexData;
+		unsigned int *m_pIndexArray;
+		unsigned int maxMeshVertexNumber;
+
+protected:
+	bool m_load;
+	bool bFirstTime;
+	float fLastTime;
+	float fTime;
+	vgKernel::Timer m_Timer;
+	
+	bool m_bPlay, b_loop;
+
+protected:
+	//Draw the bones?
+	bool m_bDrawBones;
+	//Draw the mesh?
+	bool m_bDrawMesh;
+
 };
 
 #endif // ndef MODEL_H

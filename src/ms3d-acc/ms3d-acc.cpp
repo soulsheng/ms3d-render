@@ -5,25 +5,9 @@
  *		Visit Brett Porter's Web Page at
  *		http://www.geocities.com/brettporter/programming
  */
-
-#include <windows.h>												// Header File For Windows
-#include <stdio.h>													// Header File For Standard Input/Output
-#include <gl\gl.h>													// Header File For The OpenGL32 Library
-#include <gl\glu.h>													// Header File For The GLu32 Library
-#include <gl\glaux.h>												// Header File For The Glaux Library
-
-//#include "MilkshapeModel.h"											// Header File For Milkshape File
+#include "stdafx.h"
 #include "DrawScene.h"
 
-#include <time.h>
-#include <conio.h>
-#include <iostream>
-#include <sstream>
-using namespace std;
-
-#pragma comment( lib, "opengl32.lib" )								// Search For OpenGL32.lib While Linking ( NEW )
-#pragma comment( lib, "glu32.lib" )									// Search For GLu32.lib While Linking    ( NEW )
-#pragma comment( lib, "glaux.lib" )									// Search For GLaux.lib While Linking    ( NEW )
 
 HDC			hDC=NULL;												// Private GDI Device Context
 HGLRC		hRC=NULL;												// Permanent Rendering Context
@@ -37,8 +21,6 @@ DrawScene drawScene;
 bool	keys[256];													// Array Used For The Keyboard Routine
 bool	active=TRUE;												// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;											// Fullscreen Flag Set To Fullscreen Mode By Default
-#define FILENAME_MS3D "data/tortoise.ms3d"
-//#define FILENAME_MS3D "data/Dophi.ms3d"
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);				// Declaration For WndProc
 
@@ -442,7 +424,6 @@ int WINAPI WinMain(	HINSTANCE	hInstance,							// Instance
 	//	MessageBox( NULL, "Couldn't load the model data\\model.ms3d", "Error", MB_OK | MB_ICONERROR );
 	//	return 0;													// If Model Didn't Load Quit
 	//}
-	drawScene.loadModelData(FILENAME_MS3D);
 
 	// Ask The User Which Screen Mode They Prefer
 	if (MessageBox(NULL,"Would You Like To Run In Fullscreen Mode?", "Start FullScreen?",MB_YESNO|MB_ICONQUESTION)==IDNO)
