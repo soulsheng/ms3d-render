@@ -214,6 +214,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\DrawScene.cpp"
+				>
+			</File>
+			<File
 				RelativePath="Lesson31.cpp"
 				>
 				<FileConfiguration
@@ -278,6 +282,10 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl"
 			>
+			<File
+				RelativePath=".\DrawScene.h"
+				>
+			</File>
 			<File
 				RelativePath="Lesson31.h"
 				>

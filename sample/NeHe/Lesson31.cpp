@@ -12,7 +12,8 @@
 #include <gl\glu.h>													// Header File For The GLu32 Library
 #include <gl\glaux.h>												// Header File For The Glaux Library
 
-#include "MilkshapeModel.h"											// Header File For Milkshape File
+//#include "MilkshapeModel.h"											// Header File For Milkshape File
+#include "DrawScene.h"
 
 #include <time.h>
 #include <conio.h>
@@ -29,13 +30,14 @@ HGLRC		hRC=NULL;												// Permanent Rendering Context
 HWND		hWnd=NULL;												// Holds Our Window Handle
 HINSTANCE	hInstance;												// Holds The Instance Of The Application
 
-Model *pModel = NULL;												// Holds The Model Data
+//Model *pModel = NULL;												// Holds The Model Data
+//GLfloat	yrot=0.0f;													// Y Rotation
+DrawScene drawScene;
 
 bool	keys[256];													// Array Used For The Keyboard Routine
 bool	active=TRUE;												// Window Active Flag Set To TRUE By Default
 bool	fullscreen=TRUE;											// Fullscreen Flag Set To Fullscreen Mode By Default
-
-GLfloat	yrot=0.0f;													// Y Rotation
+#define FILENAME_MS3D "data/Dophi.ms3d"
 
 LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);				// Declaration For WndProc
 
@@ -103,6 +105,7 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)					// Resize And Initialize
 	glLoadIdentity();												// Reset The Modelview Matrix
 }
 
+#if 0
 int InitGL(GLvoid)													// All Setup For OpenGL Goes Here
 {
 	AllocConsole(); 
@@ -120,6 +123,7 @@ int InitGL(GLvoid)													// All Setup For OpenGL Goes Here
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);				// Really Nice Perspective Calculations
 	return TRUE;													// Initialization Went OK
 }
+
 
 int DrawGLScene(GLvoid)												// Here's Where We Do All The Drawing
 {
@@ -145,6 +149,7 @@ int DrawGLScene(GLvoid)												// Here's Where We Do All The Drawing
 	yrot+=1.0f;														// Increase yrot By One
 	return TRUE;													// Keep Going
 }
+#endif
 
 GLvoid KillGLWindow(GLvoid)											// Properly Kill The Window
 {
@@ -351,7 +356,7 @@ BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscree
 	SetFocus(hWnd);													// Sets Keyboard Focus To The Window
 	ReSizeGLScene(width, height);									// Set Up Our Perspective GL Screen
 
-	if (!InitGL())													// Initialize Our Newly Created GL Window
+	if (!drawScene.InitGL( ))													// Initialize Our Newly Created GL Window
 	{
 		KillGLWindow();												// Reset The Display
 		MessageBox(NULL,"Initialization Failed.","ERROR",MB_OK|MB_ICONEXCLAMATION);
@@ -430,12 +435,13 @@ int WINAPI WinMain(	HINSTANCE	hInstance,							// Instance
 	MSG		msg;													// Windows Message Structure
 	BOOL	done=FALSE;												// Bool Variable To Exit Loop
 
-	pModel = new MilkshapeModel();									// Memory To Hold The Model
-	if ( pModel->loadModelData( "data/model.ms3d" ) == false )		// Loads The Model And Checks For Errors
-	{
-		MessageBox( NULL, "Couldn't load the model data\\model.ms3d", "Error", MB_OK | MB_ICONERROR );
-		return 0;													// If Model Didn't Load Quit
-	}
+	//pModel = new MilkshapeModel();									// Memory To Hold The Model
+	//if ( pModel->loadModelData( "data/model.ms3d" ) == false )		// Loads The Model And Checks For Errors
+	//{
+	//	MessageBox( NULL, "Couldn't load the model data\\model.ms3d", "Error", MB_OK | MB_ICONERROR );
+	//	return 0;													// If Model Didn't Load Quit
+	//}
+	drawScene.loadModelData(FILENAME_MS3D);
 
 	// Ask The User Which Screen Mode They Prefer
 	if (MessageBox(NULL,"Would You Like To Run In Fullscreen Mode?", "Start FullScreen?",MB_YESNO|MB_ICONQUESTION)==IDNO)
@@ -466,7 +472,7 @@ int WINAPI WinMain(	HINSTANCE	hInstance,							// Instance
 		else														// If There Are No Messages
 		{
 			// Draw The Scene.  Watch For ESC Key And Quit Messages From DrawGLScene()
-			if ((active && !DrawGLScene()) || keys[VK_ESCAPE])		// Active?  Was There A Quit Received?
+			if ((active && !drawScene.DrawGLScene()) || keys[VK_ESCAPE])		// Active?  Was There A Quit Received?
 			{
 				done=TRUE;											// ESC or DrawGLScene Signalled A Quit
 			}
