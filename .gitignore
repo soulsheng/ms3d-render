@@ -2,3 +2,8 @@
 /sample/NeHe/*.ncb
 /sample/NeHe/*.user
 /sample/NeHe/*.suo
+/src/ms3d-acc/*.txt
+/src/ms3d-acc/*.suo
+/src/ms3d-acc/*.user
+/src/*.suo
+/src/ms3d-acc/*.ncb
