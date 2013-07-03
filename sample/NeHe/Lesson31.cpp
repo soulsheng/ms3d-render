@@ -14,6 +14,12 @@
 
 #include "MilkshapeModel.h"											// Header File For Milkshape File
 
+#include <time.h>
+#include <conio.h>
+#include <iostream>
+#include <sstream>
+using namespace std;
+
 #pragma comment( lib, "opengl32.lib" )								// Search For OpenGL32.lib While Linking ( NEW )
 #pragma comment( lib, "glu32.lib" )									// Search For GLu32.lib While Linking    ( NEW )
 #pragma comment( lib, "glaux.lib" )									// Search For GLaux.lib While Linking    ( NEW )
@@ -99,6 +105,10 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)					// Resize And Initialize
 
 int InitGL(GLvoid)													// All Setup For OpenGL Goes Here
 {
+	AllocConsole(); 
+	freopen( "CONOUT$","w",stdout);
+
+
 	pModel->reloadTextures();										// Loads Model Textures
 
 	glEnable(GL_TEXTURE_2D);										// Enable Texture Mapping ( NEW )
@@ -119,7 +129,18 @@ int DrawGLScene(GLvoid)												// Here's Where We Do All The Drawing
 
 	glRotatef(yrot,0.0f,1.0f,0.0f);									// Rotate On The Y-Axis By yrot
 
+	long timerBeginMiliSecond = clock();
 	pModel->draw();													// Draw The Model
+	long timerEndMiliSecond = clock();
+
+	long timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
+	//cout << timeElapsed << endl;
+	
+	if ( timeElapsed > 1 )
+	{
+		//_cprintf("‰÷»æ∫ƒ ±Time Elapsed%d", timeElapsed );
+		printf("‰÷»æ∫ƒ ±Time Elapsed %d \n", timeElapsed );
+	}
 
 	yrot+=1.0f;														// Increase yrot By One
 	return TRUE;													// Keep Going
@@ -164,6 +185,8 @@ GLvoid KillGLWindow(GLvoid)											// Properly Kill The Window
 		MessageBox(NULL,"Could Not Unregister Class.","SHUTDOWN ERROR",MB_OK | MB_ICONINFORMATION);
 		hInstance=NULL;												// Set hInstance To NULL
 	}
+
+	FreeConsole();
 }
 
 /*	This Code Creates Our OpenGL Window.  Parameters Are:					*
