@@ -48,7 +48,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(ProjectDir)..\..\..\dependence\include\"
+				AdditionalIncludeDirectories="$(ProjectDir)..\..\dependence\include\"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -78,7 +78,7 @@
 				OutputFile="$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\..\dependence\lib\share\&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\share\cuda\&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\share\cuda\common&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\$(ConfigurationName)\cuda&quot;"
+				AdditionalLibraryDirectories="&quot;$(ProjectDir)..\..\dependence\lib\share\&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\share\cuda\&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\share\cuda\common&quot;;&quot;$(ProjectDir)..\..\..\dependence\lib\$(ConfigurationName)\cuda&quot;"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/$(TargetName).pdb"
 				SubSystem="2"
