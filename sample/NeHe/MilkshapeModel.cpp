@@ -16,7 +16,8 @@
 
 #include "MilkshapeModel.h"
 
-#include <fstream.h>
+#include <fstream>
+using namespace std;
 
 MilkshapeModel::MilkshapeModel()
 {
@@ -114,7 +115,7 @@ struct MS3DKeyframe
 
 bool MilkshapeModel::loadModelData( const char *filename )
 {
-	ifstream inputFile( filename, ios::in | ios::binary | ios::nocreate );
+	ifstream inputFile( filename, ios::in | ios::binary | ios::_Nocreate );
 	if ( inputFile.fail())
 		return false;	// "Couldn't open the model file."
 
@@ -122,11 +123,11 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	long fileSize = inputFile.tellg();
 	inputFile.seekg( 0, ios::beg );
 
-	byte *pBuffer = new byte[fileSize];
+	char *pBuffer = new char[fileSize];
 	inputFile.read( pBuffer, fileSize );
 	inputFile.close();
 
-	const byte *pPtr = pBuffer;
+	const char *pPtr = pBuffer;
 	MS3DHeader *pHeader = ( MS3DHeader* )pPtr;
 	pPtr += sizeof( MS3DHeader );
 
@@ -173,7 +174,7 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	pPtr += sizeof( word );
 	for ( i = 0; i < nGroups; i++ )
 	{
-		pPtr += sizeof( byte );	// flags
+		pPtr += sizeof( char );	// flags
 		pPtr += 32;				// name
 
 		word nTriangles = *( word* )pPtr;
