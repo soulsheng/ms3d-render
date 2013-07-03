@@ -10,16 +10,20 @@ int DrawScene::DrawGLScene( )
 	glRotatef(yrot,0.0f,1.0f,0.0f);									// Rotate On The Y-Axis By yrot
 
 	long timerBeginMiliSecond = clock();
-	m_model.draw();													// Draw The Model
+	
+	int nRepeat = 100;
+	for(int nIndex = 0; nIndex < nRepeat; nIndex++ )
+	{
+		m_model.draw();													// Draw The Model
+	}
+	
 	long timerEndMiliSecond = clock();
 
 	long timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
-	//cout << timeElapsed << endl;
 
-	if ( timeElapsed > 1 )
+	//if ( timeElapsed > 1 )
 	{
-		//_cprintf("‰÷»æ∫ƒ ±Time Elapsed%d", timeElapsed );
-		printf("‰÷»æ∫ƒ ±Time Elapsed %d \n", timeElapsed );
+		cout << "‰÷»æ∫ƒ ±Time Elapsed " << timeElapsed << endl;
 	}
 
 	yrot+=1.0f;														// Increase yrot By One
