@@ -47,12 +47,6 @@ class MilkshapeModel : public Model
 
 		void modifyVBO();
 
-		void createVBO(GLuint* vbo, unsigned int size, void* pData = NULL, int type = GL_ARRAY_BUFFER_ARB, int usage = GL_STATIC_DRAW);
-
-	protected:
-		void initializeVBOAttribute();
-		void initializeVBOMesh();
-
 protected:
 	void PreSetup();
 

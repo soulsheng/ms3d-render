@@ -239,7 +239,7 @@ void MilkshapeModel::initializeVBO()
 
 	_idGPURenderItemsPerMesh = new unsigned int[m_usNumMeshes];
 
-	glGenBuffers(m_usNumMeshes, _idGPURenderItemsPerMesh);
+	glGenBuffersARB(m_usNumMeshes, _idGPURenderItemsPerMesh);
 
 	for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
 	{
@@ -268,34 +268,11 @@ void MilkshapeModel::renderVBO()
 
 #if	RENDERMODE_MOVING
 
-	long timerBeginMiliSecond = 0, timerEndMiliSecond = 0;
-	long timeElapsed = 0;
-	ostringstream os ;
-#if OUTPUT_TIME_ATTRIBUTE
-	timerBeginMiliSecond = clock();
-#endif
+	getPlayTime( 1, 0, m_fTotalTime , true);
 
-	updateJointsInGPU(fTime);
+	updateJoints(fTime);
 
-#if OUTPUT_TIME_ATTRIBUTE
-	timerEndMiliSecond = clock();
-	timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
-	os.str("") ;
-	os << "updateJointsInGPU耗时 " << timeElapsed << " miliseconds" << endl;
-	printf("%s", os.str().c_str() );
-#endif
-
-#if OUTPUT_TIME_VERTEX
-	timerBeginMiliSecond = clock();
-#endif
-	//modifyVertexByJointInGPU();
-#if OUTPUT_TIME_VERTEX
-	timerEndMiliSecond = clock();
-	timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
-	os.str("");
-	os << "modifyVertexByJointInGPU耗时 " << timeElapsed << " miliseconds" << endl;
-	printf("%s", os.str().c_str() );
-#endif
+	modifyVBO();
 
 #endif
 
@@ -339,30 +316,71 @@ void MilkshapeModel::renderVBO()
 void MilkshapeModel::modifyVBO()
 {
 
-}
+	vgMs3d::CVector3 vecNormal;
+	vgMs3d::CVector3 vecVertex;
 
-void MilkshapeModel::createVBO( GLuint* vbo, unsigned int size, void* pData, int type /*= GL_ARRAY_BUFFER_ARB*/, int usage /*= GL_STATIC_DRAW*/ )
-{
-	glGenBuffersARB(1, vbo);
-	glBindBufferARB(type, *vbo);
+	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
+	for(int x = 0; x < m_usNumMeshes; x++)
+	{
+		int vertexCnt = 0;
 
-	// initialize buffer object
-	glBufferDataARB(type, size, pData, usage);
+		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
+		float* pVertexArray = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
 
-	glBindBufferARB(type, 0);
-}
+		//遍历Mesh的每个三角面
+		for(int y = 0; y < m_pMeshes[x].m_usNumTris; y++)
+		{
+			//Set triangle pointer to triangle #1
+			Triangle * pTri = &m_pTriangles[m_pMeshes[x].m_uspIndices[y]];
 
-void MilkshapeModel::initializeVBOAttribute()
-{
-	
+			// 遍历三角面的三个顶点 
+			for(int z = 0; z < 3; z++)
+			{
+				//Get the vertex
+				Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+
+				//If it has no bone, render as is
+				if(pVert->m_cBone == -1)
+				{
+					//Send all 3 components without modification
+					vecNormal = pTri->m_vNormals[z];
+					vecVertex = pVert->m_vVert;
+				}
+				//Otherwise, transform the vertices and normals before displaying them
+				else
+				{
+					MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
+					// Transform the normals
+					// vecNormal = pTri->m_vNormals[z];
+					// Only rotate it, no translation
+					// 当前版本不计算法线					
+					// vecNormal.Transform3(pJoint->m_matFinal);
+
+					// Transform the vertex
+					vecVertex = pVert->m_vVert;
+					// translate as well as rotate
+					vecVertex.Transform4(pJoint->m_matFinal);
+
+				}
+
+				vertexCnt += 2;
+
+				// 法线没有被计算和拷贝
+				pVertexArray[vertexCnt++] = vecNormal[0];
+				pVertexArray[vertexCnt++] = vecNormal[1];
+				pVertexArray[vertexCnt++] = vecNormal[2];
+
+				pVertexArray[vertexCnt++] = vecVertex[0];
+				pVertexArray[vertexCnt++] = vecVertex[1];
+				pVertexArray[vertexCnt++] = vecVertex[2];
+			}
+		}
+
+		glUnmapBuffer( GL_ARRAY_BUFFER );
+		glBindBuffer( GL_ARRAY_BUFFER, NULL );
+	}
 
 
-}
-
-void MilkshapeModel::initializeVBOMesh()
-{
-
-	
 }
 
 void MilkshapeModel::Setup()
@@ -418,6 +436,7 @@ void MilkshapeModel::PreSetup()
 		m_pJoints[x].m_matFinal = m_pJoints[x].m_matAbs;
 	}
 }
+
 
 
 

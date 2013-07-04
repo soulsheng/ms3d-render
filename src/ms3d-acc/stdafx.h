@@ -43,3 +43,5 @@ using namespace std;
 
 #define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	1	//	1渲染点,  0渲染面
+
+#define RENDERMODE_MOVING	1	//  1 动画
