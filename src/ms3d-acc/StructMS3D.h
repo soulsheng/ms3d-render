@@ -120,6 +120,35 @@ struct MS3DJoint
 	}
 } PACK_STRUCT;
 
+
+//-------------------------------------------------------------
+//- SMs3dMesh
+//- Group of triangles in the ms3d file
+struct SMs3dMesh
+{
+	unsigned char m_ucFlags;   //Editor flags again
+	char m_cName[32];          //Name of the mesh
+	unsigned short m_usNumTris;//Number of triangles in the group
+	unsigned short * m_uspIndices; //Triangle indices
+	char m_cMaterial;          //Material index, -1 = no material
+
+	//Let itclean up after itself like usual
+	SMs3dMesh()
+	{
+		m_uspIndices = 0;
+	}
+	~SMs3dMesh()
+	{
+		if(m_uspIndices)
+		{
+			delete [] m_uspIndices;
+			m_uspIndices = 0;
+		}
+	}
+
+
+} PACK_STRUCT;
+
 //	Mesh
 struct Mesh
 {
@@ -133,7 +162,7 @@ struct Material
 {
 	float m_ambient[4], m_diffuse[4], m_specular[4], m_emissive[4];
 	float m_shininess;
-	GLuint m_texture;
+	unsigned int m_texture;
 	char *m_pTextureFilename;
 };
 
@@ -152,37 +181,6 @@ struct Vertex
 	vgMs3d::CVector3 m_vVert;
 	float m_texcoord[2];
 };
-
-
-struct VboFaceIndex
-{
-	union{
-		struct{
-			GLuint _point0;
-			GLuint _point1;
-			GLuint _point2;
-		};
-
-		GLuint _point[3];
-	};
-
-};
-class  VboMetaFaceStruct
-{
-public:
-	VboMetaFaceStruct();
-	~VboMetaFaceStruct();
-
-	string _texFileName;
-
-	GLuint _elementBufferObjectID;
-
-	// 注意,这里是int类型的原子数目.即3的倍数
-	long _numOfElements;
-
-	VboFaceIndex* pFaceIndex;
-};
-
 
 class Ms3dVertexArrayMesh 
 {

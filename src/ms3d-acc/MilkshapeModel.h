@@ -58,12 +58,11 @@ protected:
 
 protected:	
 
-		GLuint	_idVBOAttrib;
-		
-		GLuint	_idVBOVertexArray;
+		unsigned int maxMeshVertexNumber;
 
-		//GLuint	_idVBOFaceIndex;
-		VboMetaFaceStruct* _metaFaces;
+		GLuint _idVBOFaceIndexAll;
+
+		unsigned int* _idGPURenderItemsPerMesh;
 
 };
 

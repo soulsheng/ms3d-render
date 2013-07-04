@@ -19,16 +19,20 @@
 
 MilkshapeModel::MilkshapeModel()
 {
+	_idGPURenderItemsPerMesh = NULL;
 }
 
 MilkshapeModel::~MilkshapeModel()
 {
-	delete[] _metaFaces;
-
 #if CUDA_ENABLE
 	// cuda 销毁
 	cudaThreadExit();
 #endif
+
+	if (_idGPURenderItemsPerMesh)
+	{
+		delete[] _idGPURenderItemsPerMesh;
+	}
 }
 
 
@@ -207,14 +211,15 @@ bool MilkshapeModel::loadModelData( const char *filename )
 		if(m_fTotalTime<temp)m_fTotalTime=temp;
 	}
 
-#if RENDERMODE_VBO
-	initializeVBO();
-#endif
-
 
 	delete[] pBuffer;
 
 	Setup();
+
+
+#if RENDERMODE_VBO
+	initializeVBO();
+#endif
 
 	return true;
 }
@@ -230,67 +235,104 @@ void MilkshapeModel::draw()
 
 void MilkshapeModel::initializeVBO()
 {
+	// 渲染点的vbo和CUDA id
 
-	// 计算点UV和面索引
-	_metaFaces = new VboMetaFaceStruct[m_usNumMeshes];
-	for ( int i = 0; i < m_usNumMeshes ; ++i )
+	_idGPURenderItemsPerMesh = new unsigned int[m_usNumMeshes];
+
+	glGenBuffers(m_usNumMeshes, _idGPURenderItemsPerMesh);
+
+	for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
 	{
-		Mesh& mesh = m_pMeshes[i];
-		int nSizeTriangles = mesh.m_usNumTris;
+		Ms3dVertexArrayMesh* pMesh = &m_meshVertexData.m_pMesh[i];
 
-		_metaFaces[i]._numOfElements = nSizeTriangles;
-		_metaFaces[i].pFaceIndex = new VboFaceIndex[nSizeTriangles];
-		for (int nIndexTrianglesIndex = 0; nIndexTrianglesIndex < nSizeTriangles; nIndexTrianglesIndex++ )
-		{
-			int nIndexTriangle = mesh.m_uspIndices[nIndexTrianglesIndex];
-			Triangle& tri = m_pTriangles[nIndexTriangle];
-			memcpy( &_metaFaces[i].pFaceIndex[nIndexTrianglesIndex], &tri.m_usVertIndices, sizeof( int )*3 );
+		int nSizeBufferVertex = (2+3+3) * m_pMeshes[i].m_usNumTris * 3 * sizeof(float);
 
-			// uv
-			for (int index = 0;index <3; index++)
-			{
-				int nIndexVertex = tri.m_usVertIndices[index];
-				m_pVertices[nIndexVertex].m_texcoord[0] = tri.m_s[index];
-				m_pVertices[nIndexVertex].m_texcoord[1] = tri.m_t[index];
-			}
-		}
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i]);
+
+		glBufferDataARB(GL_ARRAY_BUFFER_ARB, nSizeBufferVertex, pMesh->pVertexArray, GL_STATIC_DRAW_ARB);
+	
 	}
 
-	initializeVBOAttribute();
+	// 面的vbo
+	glGenBuffersARB(1, &_idVBOFaceIndexAll);
+	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
 
-	initializeVBOMesh();	
+	// initialize buffer object
+	int nSizeFaceIndex = maxMeshVertexNumber * sizeof(GLuint);
+	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, nSizeFaceIndex, m_pIndexArray, GL_STATIC_DRAW_ARB);
+
 }
 
 void MilkshapeModel::renderVBO()
 {
-	glBindBufferARB( GL_ARRAY_BUFFER_ARB, _idVBOVertexArray );
 
-	glColor3f(1.0f, 1.0f, 1.0f);
-	glPointSize(2.0f);
-	
-	glVertexPointer( 3, GL_FLOAT, sizeof(Vertex), BUFFER_OFFSET( sizeof(char)  ) );
-	glTexCoordPointer( 2, GL_FLOAT, sizeof(Vertex), BUFFER_OFFSET( sizeof(char) + sizeof(float)*3 ) );
-	
-	glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-	glEnableClientState( GL_VERTEX_ARRAY );
+#if	RENDERMODE_MOVING
 
-#if RENDERMODE_POINT
-	glDrawArrays(GL_POINTS, 0, m_usNumVerts );
-#else
-	for ( int i = 0; i < m_usNumMeshes ; ++i )
-	{
-		glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, _metaFaces[i]._elementBufferObjectID );
-
-		glDrawElements( GL_TRIANGLES, _metaFaces[i]._numOfElements*3, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
-
-		glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, NULL );
-	}
+	long timerBeginMiliSecond = 0, timerEndMiliSecond = 0;
+	long timeElapsed = 0;
+	ostringstream os ;
+#if OUTPUT_TIME_ATTRIBUTE
+	timerBeginMiliSecond = clock();
 #endif
 
-	glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-	glDisableClientState( GL_VERTEX_ARRAY );
+	updateJointsInGPU(fTime);
 
-	glBindBufferARB( GL_ARRAY_BUFFER_ARB, NULL );
+#if OUTPUT_TIME_ATTRIBUTE
+	timerEndMiliSecond = clock();
+	timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
+	os.str("") ;
+	os << "updateJointsInGPU耗时 " << timeElapsed << " miliseconds" << endl;
+	printf("%s", os.str().c_str() );
+#endif
+
+#if OUTPUT_TIME_VERTEX
+	timerBeginMiliSecond = clock();
+#endif
+	//modifyVertexByJointInGPU();
+#if OUTPUT_TIME_VERTEX
+	timerEndMiliSecond = clock();
+	timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
+	os.str("");
+	os << "modifyVertexByJointInGPU耗时 " << timeElapsed << " miliseconds" << endl;
+	printf("%s", os.str().c_str() );
+#endif
+
+#endif
+
+	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+	glEnable( GL_TEXTURE_2D );
+
+	glDisable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+
+
+	for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
+	{
+		glBindBufferARB( GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i] );
+
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
+
+		glColor3f(1.0f, 1.0f, 1.0f);
+		glPointSize(2.0f);
+
+		glVertexPointer( 3, GL_FLOAT, 32 , BUFFER_OFFSET( 20 ) );
+		glTexCoordPointer( 2, GL_FLOAT, 32 , BUFFER_OFFSET( 0 ) );
+
+		glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+		glEnableClientState( GL_VERTEX_ARRAY );
+
+#if RENDERMODE_POINT
+		glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );
+#else
+		glDrawElements( GL_TRIANGLES, m_meshVertexData.m_pMesh[i].numOfVertex, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+
+#endif
+
+		glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+		glDisableClientState( GL_VERTEX_ARRAY );
+
+		glBindBufferARB( GL_ARRAY_BUFFER_ARB, NULL );
+	}
 
 }
 
@@ -319,17 +361,8 @@ void MilkshapeModel::initializeVBOAttribute()
 
 void MilkshapeModel::initializeVBOMesh()
 {
-	// 点
-	unsigned int sizeVertex = sizeof(Vertex) * m_usNumVerts;
-	createVBO( &_idVBOVertexArray , sizeVertex , (void*)m_pVertices );
 
-	// 面
-	for ( int i = 0; i < m_usNumMeshes ; ++i )
-	{
-		unsigned int sizeFaceIndex = sizeof(VboFaceIndex) * _metaFaces[i]._numOfElements;
-		createVBO( &_metaFaces[i]._elementBufferObjectID , sizeFaceIndex , _metaFaces[i].pFaceIndex, GL_ELEMENT_ARRAY_BUFFER_ARB);
-		delete[]  _metaFaces[i].pFaceIndex;
-	}
+	
 }
 
 void MilkshapeModel::Setup()
@@ -387,12 +420,4 @@ void MilkshapeModel::PreSetup()
 }
 
 
-VboMetaFaceStruct::VboMetaFaceStruct()
-{
 
-}
-
-VboMetaFaceStruct::~VboMetaFaceStruct()
-{
-
-}

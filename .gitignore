@@ -10,3 +10,8 @@
 /bin/Debug/*.pdb
 /bin/Debug/*.ilk
 /src/*.ncb
+/src/*.sdf
+/src/*.opensdf
+/src/ipch
+/bin/Release/*.exe
+/bin/Debug/*.exe
