@@ -174,7 +174,9 @@ GLvoid KillGLWindow(GLvoid)											// Properly Kill The Window
 		hInstance=NULL;												// Set hInstance To NULL
 	}
 
+#if ENABLE_CONSOLE_WINDOW
 	FreeConsole();
+#endif
 }
 
 /*	This Code Creates Our OpenGL Window.  Parameters Are:					*
@@ -476,7 +478,11 @@ int WINAPI WinMain(	HINSTANCE	hInstance,							// Instance
 			}
 		}
 	}
+#if ENABLE_CONSOLE_WINDOW
+	drawScene.printfTimer();
 
+	system("pause");
+#endif
 	// Shutdown
 	KillGLWindow();													// Kill The Window
 	return (msg.wParam);											// Exit The Program

@@ -6,6 +6,8 @@
 
 #include "MilkshapeModel.h"	
 										// Header File For Milkshape File
+#include "timer.h"
+
 class DrawScene
 {
 public:
@@ -15,8 +17,15 @@ public:
 
 	int DrawGLScene()	;
 
+	void printfTimer();
+
+	DrawScene();
+
 protected:
 private:
 	MilkshapeModel m_model;
 	GLfloat		yrot;
+
+	CTimer	_timer;
+	int timer1;
 };

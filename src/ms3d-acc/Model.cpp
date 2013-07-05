@@ -79,11 +79,13 @@ Model::~Model()
 
 void Model::draw() 
 {
+#if	RENDERMODE_MOVING
 	getPlayTime( 1, 0, m_fTotalTime , true);
 
 	updateJoints(fTime);
 
 	modifyVertexByJoint();
+#endif
 
 	GLboolean texEnabled = glIsEnabled( GL_TEXTURE_2D );
 	
@@ -94,30 +96,17 @@ void Model::draw()
 		for ( int i = 0; i < m_usNumMeshes; i++ )
 		{
 			glInterleavedArrays(GL_T2F_N3F_V3F, 0, m_meshVertexData.m_pMesh[i].pVertexArray);
+
+#if RENDERMODE_POINT
+			glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );			
+#else
 			glDrawElements(GL_TRIANGLES, m_meshVertexData.m_pMesh[i].numOfVertex,
 				GL_UNSIGNED_INT , m_pIndexArray);
+#endif
 		}
 	}
 
-	if(m_bDrawBones)
-	{
-		glDisable(GL_DEPTH_TEST);
-		//glDisable(GL_LIGHTING);
-		glLineWidth(5);
-		//Draw the bones
-		glColor3f(0.0f, 1.0f, 0.0f);
-		glBegin(GL_LINES);	
-		for(int x = 1; x < m_usNumJoints; x++)
-		{
-			float * fMat = m_pJoints[x].m_matFinal.Get();
-			float * fMatParent = m_pJoints[m_pJoints[x].m_sParent].m_matFinal.Get();
-			glVertex3f(fMat[12], fMat[13], fMat[14]);
-			glVertex3f(fMatParent[12], fMatParent[13], fMatParent[14]);
-		}
-		glEnd();
 
-		glEnable(GL_DEPTH_TEST);
-	}
 
 	if ( texEnabled )
 		glEnable( GL_TEXTURE_2D );
@@ -138,7 +127,7 @@ void Model::updateJoints(float fTime)
 {
 
 
-	std::cout << "Current Time: " << fTime << std::endl;
+	//std::cout << "Current Time: " << fTime << std::endl;
 
 	// update matrix
 	for(int x = 0; x < m_usNumJoints; x++)

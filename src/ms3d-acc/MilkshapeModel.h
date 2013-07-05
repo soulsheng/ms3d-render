@@ -52,7 +52,7 @@ protected:
 
 protected:	
 
-		unsigned int maxMeshVertexNumber;
+		//unsigned int maxMeshVertexNumber;
 
 		GLuint _idVBOFaceIndexAll;
 

@@ -290,7 +290,7 @@ void MilkshapeModel::renderVBO()
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
 
 		glColor3f(1.0f, 1.0f, 1.0f);
-		glPointSize(2.0f);
+		//glPointSize(2.0f);
 
 		glVertexPointer( 3, GL_FLOAT, 32 , BUFFER_OFFSET( 20 ) );
 		glTexCoordPointer( 2, GL_FLOAT, 32 , BUFFER_OFFSET( 0 ) );
@@ -309,6 +309,7 @@ void MilkshapeModel::renderVBO()
 		glDisableClientState( GL_VERTEX_ARRAY );
 
 		glBindBufferARB( GL_ARRAY_BUFFER_ARB, NULL );
+		glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, NULL );
 	}
 
 }
@@ -326,7 +327,7 @@ void MilkshapeModel::modifyVBO()
 
 		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
 		float* pVertexArray = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
-
+#if !ENABLE_TIMER_VBO_MAP
 		//遍历Mesh的每个三角面
 		for(int y = 0; y < m_pMeshes[x].m_usNumTris; y++)
 		{
@@ -375,7 +376,7 @@ void MilkshapeModel::modifyVBO()
 				pVertexArray[vertexCnt++] = vecVertex[2];
 			}
 		}
-
+#endif
 		glUnmapBuffer( GL_ARRAY_BUFFER );
 		glBindBuffer( GL_ARRAY_BUFFER, NULL );
 	}

@@ -6,28 +6,55 @@
 
 int DrawScene::DrawGLScene( )
 {
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);				// Clear The Screen And The Depth Buffer
 	glLoadIdentity();												// Reset The Modelview Matrix
 	gluLookAt( 75, 75, 575, 0, 0, 0, 0, 1, 0 );						// (3) Eye Postion (3) Center Point (3) Y-Axis Up Vector
 
 	glRotatef(yrot,0.0f,1.0f,0.0f);									// Rotate On The Y-Axis By yrot
 
-	long timerBeginMiliSecond = clock();
+	//long timerBeginMiliSecond = clock();
 	
-	int nRepeat = 10;
+	int nRepeat = 43;  // 每个动画包含顶点个数是24K，总顶点个数是1M
 	for(int nIndex = 0; nIndex < nRepeat; nIndex++ )
 	{
 		m_model.draw();													// Draw The Model
 	}
 	
-	long timerEndMiliSecond = clock();
+	//long timerEndMiliSecond = clock();
 
-	long timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
+	//long timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
 
-	cout << "渲染耗时Time Elapsed " << timeElapsed << endl;
+	//cout << "渲染耗时Time Elapsed " << timeElapsed << endl;
 	
+	glFinish();
 
-//	yrot+=1.0f;														// Increase yrot By One
+#if ENABLE_TIMER
+	_timer.stopTimer(timer1);
+	double dTime1 = (double)_timer.readTimer(timer1);
+
+#if ENABLE_FPS_COUNT
+	static double dSecond = 0.0f;
+	static int	nFPS = 0;
+	if ( dSecond<1.0f )
+	{
+		dSecond += dTime1;
+		nFPS ++ ;
+	}
+	else
+	{
+		_timer.insertTimer("nFPS", nFPS);
+
+		dSecond = 0.0f;
+		nFPS = 0;
+	}
+#else
+	_timer.insertTimer("runtime", dTime1);
+#endif
+
+	_timer.resetTimer(timer1);
+	_timer.startTimer(timer1);
+#endif
 	return TRUE;
 }
 
@@ -57,10 +84,10 @@ int DrawScene::InitGL( )
 	glEnable(GL_DEPTH_TEST);										// Enables Depth Testing
 	glDepthFunc(GL_LEQUAL);											// The Type Of Depth Testing To Do
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);				// Really Nice Perspective Calculations
-
+#if ENABLE_CONSOLE_WINDOW
 	AllocConsole(); 
 	freopen( "CONOUT$","w",stdout);
-
+#endif
 	return TRUE;
 }
 
@@ -74,3 +101,20 @@ bool DrawScene::loadModelData( string filename )
 
 	return 1;
 }
+
+void DrawScene::printfTimer()
+{
+	_timer.printfTimer();
+}
+
+DrawScene::DrawScene()
+{
+#if ENABLE_TIMER
+	timer1 = _timer.createTimer();
+
+	_timer.resetTimer(timer1);
+	_timer.startTimer(timer1);
+#endif
+
+}
+
