@@ -38,6 +38,9 @@ Model::Model()
 	m_bDrawBones = true;
 	m_bDrawMesh = false;
 #endif
+
+	m_pIndexArray = NULL;
+	maxMeshVertexNumber = 0;
 }
 
 Model::~Model()
@@ -74,6 +77,12 @@ Model::~Model()
 	{
 		delete[] m_pVertices;
 		m_pVertices = NULL;
+	}
+
+	if (m_pIndexArray)
+	{
+		delete[] m_pIndexArray;
+		m_pIndexArray = NULL;
 	}
 }
 
