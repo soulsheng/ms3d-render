@@ -13,17 +13,16 @@ class DrawScene
 public:
 	int InitGL( )	;												// All Setup For OpenGL Goes Here
 
-	bool loadModelData(string filename);
-
 	int DrawGLScene()	;
 
 	void printfTimer();
 
 	DrawScene();
+	~DrawScene();
 
 protected:
 private:
-	MilkshapeModel m_model;
+	MilkshapeModel* m_model;
 	GLfloat		yrot;
 
 	CTimer	_timer;

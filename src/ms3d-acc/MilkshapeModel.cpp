@@ -276,40 +276,43 @@ void MilkshapeModel::renderVBO()
 
 #endif
 
-	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-	glEnable( GL_TEXTURE_2D );
-
-	glDisable(GL_BLEND);
-	glDisable(GL_ALPHA_TEST);
-
-
-	for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
+	if(m_bDrawMesh)
 	{
-		glBindBufferARB( GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i] );
+		glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+		glEnable( GL_TEXTURE_2D );
 
-		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
+		glDisable(GL_BLEND);
+		glDisable(GL_ALPHA_TEST);
 
-		glColor3f(1.0f, 1.0f, 1.0f);
-		//glPointSize(2.0f);
 
-		glVertexPointer( 3, GL_FLOAT, 32 , BUFFER_OFFSET( 20 ) );
-		glTexCoordPointer( 2, GL_FLOAT, 32 , BUFFER_OFFSET( 0 ) );
+		for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
+		{
+			glBindBufferARB( GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i] );
 
-		glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-		glEnableClientState( GL_VERTEX_ARRAY );
+			glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
+
+			glColor3f(1.0f, 1.0f, 1.0f);
+			//glPointSize(2.0f);
+
+			glVertexPointer( 3, GL_FLOAT, 32 , BUFFER_OFFSET( 20 ) );
+			glTexCoordPointer( 2, GL_FLOAT, 32 , BUFFER_OFFSET( 0 ) );
+
+			glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+			glEnableClientState( GL_VERTEX_ARRAY );
 
 #if RENDERMODE_POINT
-		glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );
+			glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );
 #else
-		glDrawElements( GL_TRIANGLES, m_meshVertexData.m_pMesh[i].numOfVertex, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+			glDrawElements( GL_TRIANGLES, m_meshVertexData.m_pMesh[i].numOfVertex, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
 #endif
 
-		glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-		glDisableClientState( GL_VERTEX_ARRAY );
+			glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+			glDisableClientState( GL_VERTEX_ARRAY );
 
-		glBindBufferARB( GL_ARRAY_BUFFER_ARB, NULL );
-		glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, NULL );
+			glBindBufferARB( GL_ARRAY_BUFFER_ARB, NULL );
+			glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, NULL );
+		}
 	}
 
 }

@@ -31,7 +31,7 @@ Model::Model()
 	bFirstTime = true;
 	m_bPlay = true;
 
-#if 1
+#if ENABLE_DRAW
 	m_bDrawBones = false;
 	m_bDrawMesh = true;
 #else

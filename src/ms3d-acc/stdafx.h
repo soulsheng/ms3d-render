@@ -41,7 +41,7 @@ using namespace std;
 #endif
 #endif
 
-#define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
+#define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
 #define RENDERMODE_MOVING	1	//  1 动画
@@ -52,3 +52,7 @@ using namespace std;
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
 
+#define COUNT_MODEL			43//43		// 模型数目
+
+#define ENABLE_DRAW_REPEAT	0	//1		重复渲染1个模型
+#define ENABLE_DRAW			1	//1		渲染开启

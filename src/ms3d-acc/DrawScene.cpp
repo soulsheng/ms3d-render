@@ -14,13 +14,18 @@ int DrawScene::DrawGLScene( )
 	glRotatef(yrot,0.0f,1.0f,0.0f);									// Rotate On The Y-Axis By yrot
 
 	//long timerBeginMiliSecond = clock();
-	
-	int nRepeat = 43;  // 每个动画包含顶点个数是24K，总顶点个数是1M
-	for(int nIndex = 0; nIndex < nRepeat; nIndex++ )
+#if ENABLE_DRAW_REPEAT
+	// 每个动画包含顶点个数是24K，总顶点个数是1M
+	for(int nIndex = 0; nIndex < COUNT_MODEL; nIndex++ )
 	{
-		m_model.draw();													// Draw The Model
+		m_model->draw();													// Draw The Model
 	}
-	
+#else
+	for(int nIndex = 0; nIndex < COUNT_MODEL; nIndex++ )
+	{
+		m_model[nIndex].draw();													// Draw The Model
+	}
+#endif
 	//long timerEndMiliSecond = clock();
 
 	//long timeElapsed = timerEndMiliSecond - timerBeginMiliSecond;
@@ -74,8 +79,11 @@ int DrawScene::InitGL( )
 	cudaGLSetGLDevice( cutGetMaxGflopsDeviceId() );
 #endif
 
-	m_model.loadModelData(FILENAME_MS3D);
-	m_model.reloadTextures();										// Loads Model Textures
+	for (int i=0;i<COUNT_MODEL;i++)
+	{
+		m_model[i].loadModelData(FILENAME_MS3D);
+		m_model[i].reloadTextures();										// Loads Model Textures
+	}
 
 	glEnable(GL_TEXTURE_2D);										// Enable Texture Mapping ( NEW )
 	glShadeModel(GL_SMOOTH);										// Enable Smooth Shading
@@ -91,17 +99,6 @@ int DrawScene::InitGL( )
 	return TRUE;
 }
 
-bool DrawScene::loadModelData( string filename )
-{
-	if ( m_model.loadModelData( filename.c_str() ) == false )		// Loads The Model And Checks For Errors
-	{
-		MessageBox( NULL, "Couldn't load the model data\\model.ms3d", "Error", MB_OK | MB_ICONERROR );
-		return 0;													// If Model Didn't Load Quit
-	}
-
-	return 1;
-}
-
 void DrawScene::printfTimer()
 {
 	_timer.printfTimer();
@@ -115,6 +112,15 @@ DrawScene::DrawScene()
 	_timer.resetTimer(timer1);
 	_timer.startTimer(timer1);
 #endif
+	m_model = new MilkshapeModel[COUNT_MODEL];
+}
 
+DrawScene::~DrawScene()
+{
+	if ( m_model )
+	{
+		delete[] m_model;
+		m_model = NULL;
+	}
 }
 
