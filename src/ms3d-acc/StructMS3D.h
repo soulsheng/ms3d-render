@@ -120,7 +120,7 @@ struct MS3DJoint
 	}
 } PACK_STRUCT;
 
-
+#if 0
 //-------------------------------------------------------------
 //- SMs3dMesh
 //- Group of triangles in the ms3d file
@@ -148,7 +148,7 @@ struct SMs3dMesh
 
 
 } PACK_STRUCT;
-
+#endif
 //	Mesh
 struct Mesh
 {
