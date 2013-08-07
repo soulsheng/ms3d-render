@@ -104,25 +104,36 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	m_usNumMeshes = nGroups;
 	m_pMeshes = new Mesh[nGroups];
 	pPtr += sizeof( word );
+
+	unsigned short nTrianglesSub = 0;
 	for ( i = 0; i < nGroups; i++ )
 	{
 		pPtr += sizeof( char );	// flags
 		pPtr += 32;				// name
 
-		word nTriangles = *( word* )pPtr;
-		pPtr += sizeof( word );
-		int *pTriangleIndices = new int[nTriangles];
-		for ( int j = 0; j < nTriangles; j++ )
+		nTrianglesSub = *( unsigned short* )pPtr;
+		pPtr += sizeof( unsigned short );
+
+		unsigned short usNumRepeatPadding = COUNT_MODEL_SIMULATE;
+		m_pMeshes[i].m_usNumRepeatPadding = usNumRepeatPadding;
+		int *pTriangleIndices = new int[nTrianglesSub*usNumRepeatPadding];
+		for ( int j = 0; j < nTrianglesSub; j++ )
 		{
-			pTriangleIndices[j] = *( word* )pPtr;
-			pPtr += sizeof( word );
+			pTriangleIndices[j] = *( unsigned short* )pPtr;
+			pPtr += sizeof( unsigned short );
+		}
+
+		// 野割 usNumRepeatPadding 蔚中頭
+		for ( int j = 1; j < usNumRepeatPadding; j++ )
+		{
+			memcpy( pTriangleIndices + j * nTrianglesSub, pTriangleIndices, sizeof(int) * nTrianglesSub );
 		}
 
 		char materialIndex = *( char* )pPtr;
 		pPtr += sizeof( char );
 	
 		m_pMeshes[i].m_materialIndex = materialIndex;
-		m_pMeshes[i].m_usNumTris = nTriangles;
+		m_pMeshes[i].m_usNumTris = nTrianglesSub*usNumRepeatPadding;
 		m_pMeshes[i].m_uspIndices = pTriangleIndices;
 	}
 

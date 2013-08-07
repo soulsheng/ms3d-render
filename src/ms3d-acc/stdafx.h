@@ -52,7 +52,8 @@ using namespace std;
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
 
-#define COUNT_MODEL			43//43		// 模型数目
+#define COUNT_MODEL						43		// 模型数目
+#define COUNT_MODEL_SIMULATE		1				// 模拟大模型，43倍共1M顶点数
 
 #define ENABLE_DRAW_REPEAT	0	//1		重复渲染1个模型
 #define ENABLE_DRAW			1	//1		渲染开启

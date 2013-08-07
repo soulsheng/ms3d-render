@@ -137,7 +137,9 @@ void Model::updateJoints(float fTime)
 
 
 	//std::cout << "Current Time: " << fTime << std::endl;
-
+	// update matrix
+	for(int i = 0; i < COUNT_MODEL_SIMULATE; i++)
+	{
 	// update matrix
 	for(int x = 0; x < m_usNumJoints; x++)
 	{
@@ -226,8 +228,8 @@ void Model::updateJoints(float fTime)
 		//otherwise the final matrix is the parents final matrix * the new matrix
 		else
 			pJoint->m_matFinal = m_pJoints[pJoint->m_sParent].m_matFinal * matFinal;
-	}
-
+	}//x
+	}//i
 
 }
 

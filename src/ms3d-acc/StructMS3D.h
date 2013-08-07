@@ -155,6 +155,8 @@ struct Mesh
 	int m_materialIndex;
 	int m_usNumTris;
 	int *m_uspIndices;
+
+	int m_usNumRepeatPadding; // 拷贝填充n倍面片，构造3n倍顶点。  本实验设置n=43,3n=146
 };
 
 //	Material properties
