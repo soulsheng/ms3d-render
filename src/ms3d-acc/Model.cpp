@@ -437,36 +437,14 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArray , Mesh* pMesh)
 			//Get the vertex
 			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
 
-			//If it has no bone, render as is
-			if(pVert->m_cBone == -1)
-			{
-				//Send all 3 components without modification
-				vecNormal = pTri->m_vNormals[z];
-				vecVertex = pVert->m_vVert;
-			}
-			//Otherwise, transform the vertices and normals before displaying them
-			else
-			{
-				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
-				// Transform the normals
-				// vecNormal = pTri->m_vNormals[z];
-				// Only rotate it, no translation
-				// 当前版本不计算法线					
-				// vecNormal.Transform3(pJoint->m_matFinal);
+			MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
+			
+			vecVertex = pVert->m_vVert;
 
-				// Transform the vertex
-				vecVertex = pVert->m_vVert;
-				// translate as well as rotate
-				vecVertex.Transform4(pJoint->m_matFinal);
+			vecVertex.Transform4(pJoint->m_matFinal);
 
-			}
 
-			vertexCnt += 2;
-
-			// 法线没有被计算和拷贝
-			pVertexArray[vertexCnt++] = vecNormal[0];
-			pVertexArray[vertexCnt++] = vecNormal[1];
-			pVertexArray[vertexCnt++] = vecNormal[2];
+			vertexCnt += 5;
 
 			pVertexArray[vertexCnt++] = vecVertex[0];
 			pVertexArray[vertexCnt++] = vecVertex[1];
