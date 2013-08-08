@@ -283,7 +283,7 @@ void MilkshapeModel::renderVBO()
 
 	updateJoints(fTime);
 
-	modifyVBOOpti();//modifyVBO();
+	modifyVBO();
 
 #endif
 
@@ -338,35 +338,16 @@ void MilkshapeModel::modifyVBO()
 
 #if !ENABLE_TIMER_VBO_MAP
 		
-		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
+
 		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		Mesh* pMesh = m_pMeshes+x;
 
-		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pIndexJoint, pMesh );
-
+#if ENABLE_OPTIMIZE
+		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pMesh );
+#else
+		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pMesh );
 #endif
-
-		glUnmapBuffer( GL_ARRAY_BUFFER );
-		glBindBuffer( GL_ARRAY_BUFFER, NULL );
-	}
-
-}
-
-void MilkshapeModel::modifyVBOOpti()
-{
-	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
-	for(int x = 0; x < m_usNumMeshes; x++)
-	{
-		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
-		float* pVertexArrayDynamic = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
-
-#if !ENABLE_TIMER_VBO_MAP
-		
-		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
-		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
-		Mesh* pMesh = m_pMeshes+x;
-
-		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pIndexJoint, pMesh );
 
 #endif
 
@@ -401,7 +382,7 @@ void MilkshapeModel::Setup()
 #endif
 	setupVertexArray();
 
-	modifyVertexByJoint();
+	modifyVertexByJointInit();
 
 }
 

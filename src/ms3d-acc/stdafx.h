@@ -57,3 +57,5 @@ using namespace std;
 
 #define ENABLE_DRAW_REPEAT	0	//1		重复渲染1个模型
 #define ENABLE_DRAW			1	//1		渲染开启
+
+#define ENABLE_OPTIMIZE	1 //优化

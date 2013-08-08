@@ -221,8 +221,9 @@ public:
 
 	int materialID;
 
-	float * pVertexArrayStatic;
-	float * pVertexArrayDynamic;
+	float * pVertexArrayRaw; // 最原始坐标，未经坐标变换展开
+	float * pVertexArrayStatic; // 静态
+	float * pVertexArrayDynamic; // 动态
 	int * pIndexJoint;
 
 	int numOfVertex;

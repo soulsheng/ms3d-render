@@ -278,7 +278,7 @@ void Model::getPlayTime(float fSpeed, float fStartTime, float fEndTime, bool bLo
 	}
 }
 
-void Model::modifyVertexByJoint()
+void Model::modifyVertexByJointInit()
 {
 	
 	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
@@ -286,11 +286,39 @@ void Model::modifyVertexByJoint()
 	{
 		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
+
 		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		
 		Mesh* pMesh = m_pMeshes+x;
 		
-		modifyVertexByJointKernel( pVertexArrayStatic, pVertexArrayDynamic, pIndexJoint, pMesh );		
+		modifyVertexByJointInitKernel(  pVertexArrayRaw, pVertexArrayStatic, pIndexJoint, pMesh ); // 更新pVertexArrayStatic
+
+#if !RENDERMODE_MOVING
+		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  (2+3+3) * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
+#endif
+	}
+}
+
+void Model::modifyVertexByJoint()
+{
+	
+	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
+	//int x = 2;
+	for(int x = 0; x < m_usNumMeshes; x++)
+	{
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
+
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
+		
+		Mesh* pMesh = m_pMeshes+x;
+		
+#if ENABLE_OPTIMIZE
+		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pMesh );
+#else
+		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pMesh );
+#endif
 	}
 }
 
@@ -308,11 +336,13 @@ void Model::setupVertexArray()
 		float* pVertexArrayStatic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
 		float* pVertexArrayDynamic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
 		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3];
+		float* pVertexArrayRaw = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
 
 		m_meshVertexData.m_pMesh[x].numOfVertex = m_pMeshes[x].m_usNumTris * 3;
 		m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
 		m_meshVertexData.m_pMesh[x].pVertexArrayDynamic = pVertexArrayDynamic;
 		m_meshVertexData.m_pMesh[x].pIndexJoint = pIndexJoint;
+		m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
 		if (m_meshVertexData.m_pMesh[x].numOfVertex > (int)maxMeshVertexNumber)
@@ -320,8 +350,8 @@ void Model::setupVertexArray()
 			maxMeshVertexNumber = m_meshVertexData.m_pMesh[x].numOfVertex;
 		}
 	}
-
-	vgMs3d::CVector3 vecNormal;
+	
+	/*vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
 
 
@@ -357,7 +387,7 @@ void Model::setupVertexArray()
 				pVertexArrayStatic[vertexCnt++] = pVert->m_vVert.Get()[2];
 			}
 		}
-	}		
+	}*/		
 
 	m_pIndexArray = new unsigned int[maxMeshVertexNumber];
 
@@ -367,7 +397,7 @@ void Model::setupVertexArray()
 	}
 }
 
-void Model::modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
+void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndexJoint, Mesh* pMesh)
 {
 	vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
@@ -424,26 +454,85 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVerte
 	}//for y
 }
 
+void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic  , int* pIndexJoint, Mesh* pMesh)
+{
+	vgMs3d::CVector3 vecNormal;
+	vgMs3d::CVector3 vecVertex;
 
-void Model::modifyVertexByJointKernelOpti( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
+	int vertexCnt = 0;
+
+	//遍历Mesh的每个三角面
+	for(int y = 0; y < pMesh->m_usNumTris; y++)
+	{
+		//Set triangle pointer to triangle #1
+
+		Triangle * pTri = &m_pTriangles[pMesh->m_uspIndices[y]];
+		// 遍历三角面的三个顶点 
+		for(int z = 0; z < 3; z++)
+		{
+			//Get the vertex
+			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+			
+			pIndexJoint[3*y+z] = pVert->m_cBone;
+
+			//If it has no bone, render as is
+			if(pVert->m_cBone == -1)
+			{
+				//Send all 3 components without modification
+				vecNormal = pTri->m_vNormals[z];
+				vecVertex = pVert->m_vVert;
+			}
+			//Otherwise, transform the vertices and normals before displaying them
+			else
+			{
+				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
+				
+				vecVertex = pVert->m_vVert;
+				// translate as well as rotate
+				vecVertex.Transform4(pJoint->m_matFinal);
+
+			}
+
+			vertexCnt += 2;
+
+			// 法线没有被计算和拷贝
+			pVertexArrayDynamic[vertexCnt++] = vecNormal[0];
+			pVertexArrayDynamic[vertexCnt++] = vecNormal[1];
+			pVertexArrayDynamic[vertexCnt++] = vecNormal[2];
+
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
+
+			if(pVertexArrayStatic)
+			{
+				pVertexArrayStatic[ 8*(3*y+z) + 5 ] = pVert->m_vVert[0];
+				pVertexArrayStatic[ 8*(3*y+z) + 6 ] = pVert->m_vVert[1];
+				pVertexArrayStatic[ 8*(3*y+z) + 7 ] = pVert->m_vVert[2];
+			}
+		}//for z
+	}//for y
+}
+
+
+void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
 {
 	int vertexCnt = 0;
 
 	//遍历每个顶点
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
-		MS3DJoint * pJoint = m_pJoints + pIndexJoint[y] ;
 
-		vgMs3d::CVector3 vecVertex(pVertexArrayStatic+vertexCnt);
+		int index =  8*y+5 ;
+		vgMs3d::CVector3 vecVertex(pVertexArrayRaw+index);
+		
+		MS3DJoint * pJoint = m_pJoints + pIndexJoint[y] ;
 
 		vecVertex.Transform4(pJoint->m_matFinal);
 
-
-		vertexCnt += 5;
-
-		pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
-		pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
-		pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
+		pVertexArrayDynamic[ index ] = vecVertex[0];
+		pVertexArrayDynamic[ index+1 ] = vecVertex[1];
+		pVertexArrayDynamic[ index+2 ] = vecVertex[2];
 
 	}//for y
 }

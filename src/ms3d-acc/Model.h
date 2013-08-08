@@ -50,9 +50,12 @@ protected:
 
 	void updateJoints(float fTime);
 
+	void modifyVertexByJointInit();
+	void modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh );
+
 	void modifyVertexByJoint();
-	void modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh );
-	void modifyVertexByJointKernelOpti( float* pVertexArrayStatic , float* pVertexArrayDynamic ,int* pIndexJoint,  Mesh* pMesh );
+	void modifyVertexByJointKernel( float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh );
+	void modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint,  Mesh* pMesh );
 
 	void getPlayTime(float fSpeed, float fStartTime, float fEndTime, bool bLoop);
 	
