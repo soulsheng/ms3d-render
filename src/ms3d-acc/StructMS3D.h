@@ -190,16 +190,23 @@ public:
 	Ms3dVertexArrayMesh()
 	{
 		materialID = 0;
-		pVertexArray = NULL;
+		pVertexArrayStatic = NULL;
+		pVertexArrayDynamic = NULL;
 		numOfVertex = 0;
 	}
 
 	~Ms3dVertexArrayMesh()
 	{
-		if (pVertexArray != NULL)
+		if (pVertexArrayStatic != NULL)
 		{
-			delete pVertexArray;
-			pVertexArray = NULL;
+			delete pVertexArrayStatic;
+			pVertexArrayStatic = NULL;
+		}
+
+		if (pVertexArrayDynamic != NULL)
+		{
+			delete pVertexArrayDynamic;
+			pVertexArrayDynamic = NULL;
 		}
 
 		numOfVertex = 0;
@@ -207,7 +214,8 @@ public:
 
 	int materialID;
 
-	float * pVertexArray;
+	float * pVertexArrayStatic;
+	float * pVertexArrayDynamic;
 
 	int numOfVertex;
 };

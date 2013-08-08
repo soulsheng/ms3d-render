@@ -260,7 +260,7 @@ void MilkshapeModel::initializeVBO()
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i]);
 
-		glBufferDataARB(GL_ARRAY_BUFFER_ARB, nSizeBufferVertex, pMesh->pVertexArray, GL_STATIC_DRAW_ARB);
+		glBufferDataARB(GL_ARRAY_BUFFER_ARB, nSizeBufferVertex, pMesh->pVertexArrayDynamic, GL_STATIC_DRAW_ARB);
 	
 	}
 
@@ -334,13 +334,14 @@ void MilkshapeModel::modifyVBO()
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
 		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
-		float* pVertexArray = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
+		float* pVertexArrayDynamic = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
 
 #if !ENABLE_TIMER_VBO_MAP
 		
+		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
 		Mesh* pMesh = m_pMeshes+x;
 
-		modifyVertexByJointKernel( pVertexArray ,pMesh );
+		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pMesh );
 
 #endif
 
@@ -356,13 +357,14 @@ void MilkshapeModel::modifyVBOOpti()
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
 		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
-		float* pVertexArray = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
+		float* pVertexArrayDynamic = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
 
 #if !ENABLE_TIMER_VBO_MAP
 		
+		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
 		Mesh* pMesh = m_pMeshes+x;
 
-		modifyVertexByJointKernelOpti( pVertexArray ,pMesh );
+		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pMesh );
 
 #endif
 

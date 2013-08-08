@@ -104,7 +104,7 @@ void Model::draw()
 		// Draw by group
 		for ( int i = 0; i < m_usNumMeshes; i++ )
 		{
-			glInterleavedArrays(GL_T2F_N3F_V3F, 0, m_meshVertexData.m_pMesh[i].pVertexArray);
+			glInterleavedArrays(GL_T2F_N3F_V3F, 0, m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
 
 #if RENDERMODE_POINT
 			glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );			
@@ -284,11 +284,12 @@ void Model::modifyVertexByJoint()
 	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
-		float* pVertexArray = m_meshVertexData.m_pMesh[x].pVertexArray;
+		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
 		
 		Mesh* pMesh = m_pMeshes+x;
 		
-		modifyVertexByJointKernel( pVertexArray , pMesh );		
+		modifyVertexByJointKernel( pVertexArrayStatic, pVertexArrayDynamic, pMesh );		
 	}
 }
 
@@ -303,11 +304,12 @@ void Model::setupVertexArray()
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
-		float* pVertexArray = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
-
+		float* pVertexArrayStatic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
+		float* pVertexArrayDynamic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
 
 		m_meshVertexData.m_pMesh[x].numOfVertex = m_pMeshes[x].m_usNumTris * 3;
-		m_meshVertexData.m_pMesh[x].pVertexArray = pVertexArray;
+		m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
+		m_meshVertexData.m_pMesh[x].pVertexArrayDynamic = pVertexArrayDynamic;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
 		if (m_meshVertexData.m_pMesh[x].numOfVertex > (int)maxMeshVertexNumber)
@@ -324,7 +326,7 @@ void Model::setupVertexArray()
 	{
 		int vertexCnt = 0;
 
-		float* pVertexArray = m_meshVertexData.m_pMesh[x].pVertexArray;
+		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
 
 		for(int y = 0; y < m_pMeshes[x].m_usNumTris; y++)
 		{
@@ -337,17 +339,17 @@ void Model::setupVertexArray()
 				//Get the vertex
 				Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
 
-				pVertexArray[vertexCnt++] = pTri->m_s[z];
-				pVertexArray[vertexCnt++] = 1.0f - pTri->m_t[z];
+				pVertexArrayStatic[vertexCnt++] = pTri->m_s[z];
+				pVertexArrayStatic[vertexCnt++] = 1.0f - pTri->m_t[z];
 
 				// 不初始化法线
-				pVertexArray[vertexCnt++] = pTri->m_vNormals[z].Get()[0];
-				pVertexArray[vertexCnt++] = pTri->m_vNormals[z].Get()[1];
-				pVertexArray[vertexCnt++] = pTri->m_vNormals[z].Get()[2];
+				pVertexArrayStatic[vertexCnt++] = pTri->m_vNormals[z].Get()[0];
+				pVertexArrayStatic[vertexCnt++] = pTri->m_vNormals[z].Get()[1];
+				pVertexArrayStatic[vertexCnt++] = pTri->m_vNormals[z].Get()[2];
 
-				pVertexArray[vertexCnt++] = pVert->m_vVert.Get()[0];
-				pVertexArray[vertexCnt++] = pVert->m_vVert.Get()[1];
-				pVertexArray[vertexCnt++] = pVert->m_vVert.Get()[2];
+				pVertexArrayStatic[vertexCnt++] = pVert->m_vVert.Get()[0];
+				pVertexArrayStatic[vertexCnt++] = pVert->m_vVert.Get()[1];
+				pVertexArrayStatic[vertexCnt++] = pVert->m_vVert.Get()[2];
 			}
 		}
 	}		
@@ -360,7 +362,7 @@ void Model::setupVertexArray()
 	}
 }
 
-void Model::modifyVertexByJointKernel( float* pVertexArray , Mesh* pMesh)
+void Model::modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , Mesh* pMesh)
 {
 	vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
@@ -406,19 +408,19 @@ void Model::modifyVertexByJointKernel( float* pVertexArray , Mesh* pMesh)
 			vertexCnt += 2;
 
 			// 法线没有被计算和拷贝
-			pVertexArray[vertexCnt++] = vecNormal[0];
-			pVertexArray[vertexCnt++] = vecNormal[1];
-			pVertexArray[vertexCnt++] = vecNormal[2];
+			pVertexArrayDynamic[vertexCnt++] = vecNormal[0];
+			pVertexArrayDynamic[vertexCnt++] = vecNormal[1];
+			pVertexArrayDynamic[vertexCnt++] = vecNormal[2];
 
-			pVertexArray[vertexCnt++] = vecVertex[0];
-			pVertexArray[vertexCnt++] = vecVertex[1];
-			pVertexArray[vertexCnt++] = vecVertex[2];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
 		}//for z
 	}//for y
 }
 
 
-void Model::modifyVertexByJointKernelOpti( float* pVertexArray , Mesh* pMesh)
+void Model::modifyVertexByJointKernelOpti( float* pVertexArrayStatic , float* pVertexArrayDynamic , Mesh* pMesh)
 {
 	vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
@@ -446,9 +448,9 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArray , Mesh* pMesh)
 
 			vertexCnt += 5;
 
-			pVertexArray[vertexCnt++] = vecVertex[0];
-			pVertexArray[vertexCnt++] = vecVertex[1];
-			pVertexArray[vertexCnt++] = vecVertex[2];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
+			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
 		}//for z
 	}//for y
 }
