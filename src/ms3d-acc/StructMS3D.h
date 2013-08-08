@@ -192,6 +192,7 @@ public:
 		materialID = 0;
 		pVertexArrayStatic = NULL;
 		pVertexArrayDynamic = NULL;
+		pIndexJoint = NULL;
 		numOfVertex = 0;
 	}
 
@@ -209,6 +210,12 @@ public:
 			pVertexArrayDynamic = NULL;
 		}
 
+		if (pIndexJoint != NULL)
+		{
+			delete pIndexJoint;
+			pIndexJoint = NULL;
+		}
+
 		numOfVertex = 0;
 	}
 
@@ -216,6 +223,7 @@ public:
 
 	float * pVertexArrayStatic;
 	float * pVertexArrayDynamic;
+	int * pIndexJoint;
 
 	int numOfVertex;
 };

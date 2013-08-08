@@ -286,10 +286,11 @@ void Model::modifyVertexByJoint()
 	{
 		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		
 		Mesh* pMesh = m_pMeshes+x;
 		
-		modifyVertexByJointKernel( pVertexArrayStatic, pVertexArrayDynamic, pMesh );		
+		modifyVertexByJointKernel( pVertexArrayStatic, pVertexArrayDynamic, pIndexJoint, pMesh );		
 	}
 }
 
@@ -306,10 +307,12 @@ void Model::setupVertexArray()
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
 		float* pVertexArrayStatic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
 		float* pVertexArrayDynamic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
+		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3];
 
 		m_meshVertexData.m_pMesh[x].numOfVertex = m_pMeshes[x].m_usNumTris * 3;
 		m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
 		m_meshVertexData.m_pMesh[x].pVertexArrayDynamic = pVertexArrayDynamic;
+		m_meshVertexData.m_pMesh[x].pIndexJoint = pIndexJoint;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
 		if (m_meshVertexData.m_pMesh[x].numOfVertex > (int)maxMeshVertexNumber)
@@ -327,6 +330,7 @@ void Model::setupVertexArray()
 		int vertexCnt = 0;
 
 		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 
 		for(int y = 0; y < m_pMeshes[x].m_usNumTris; y++)
 		{
@@ -338,6 +342,7 @@ void Model::setupVertexArray()
 			{
 				//Get the vertex
 				Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+				pIndexJoint[3*y+z] = pVert->m_cBone;
 
 				pVertexArrayStatic[vertexCnt++] = pTri->m_s[z];
 				pVertexArrayStatic[vertexCnt++] = 1.0f - pTri->m_t[z];
@@ -362,7 +367,7 @@ void Model::setupVertexArray()
 	}
 }
 
-void Model::modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , Mesh* pMesh)
+void Model::modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
 {
 	vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
@@ -420,38 +425,26 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayStatic , float* pVerte
 }
 
 
-void Model::modifyVertexByJointKernelOpti( float* pVertexArrayStatic , float* pVertexArrayDynamic , Mesh* pMesh)
+void Model::modifyVertexByJointKernelOpti( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
 {
-	vgMs3d::CVector3 vecNormal;
-	vgMs3d::CVector3 vecVertex;
-
 	int vertexCnt = 0;
 
-	//遍历Mesh的每个三角面
-	for(int y = 0; y < pMesh->m_usNumTris; y++)
+	//遍历每个顶点
+	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
-		//Set triangle pointer to triangle #1
+		MS3DJoint * pJoint = m_pJoints + pIndexJoint[y] ;
 
-		Triangle * pTri = &m_pTriangles[pMesh->m_uspIndices[y]];
-		// 遍历三角面的三个顶点 
-		for(int z = 0; z < 3; z++)
-		{
-			//Get the vertex
-			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+		vgMs3d::CVector3 vecVertex(pVertexArrayStatic+vertexCnt);
 
-			MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
-			
-			vecVertex = pVert->m_vVert;
-
-			vecVertex.Transform4(pJoint->m_matFinal);
+		vecVertex.Transform4(pJoint->m_matFinal);
 
 
-			vertexCnt += 5;
+		vertexCnt += 5;
 
-			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
-			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
-			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
-		}//for z
+		pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
+		pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
+		pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
+
 	}//for y
 }
 

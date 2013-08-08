@@ -339,9 +339,10 @@ void MilkshapeModel::modifyVBO()
 #if !ENABLE_TIMER_VBO_MAP
 		
 		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		Mesh* pMesh = m_pMeshes+x;
 
-		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pMesh );
+		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pIndexJoint, pMesh );
 
 #endif
 
@@ -362,9 +363,10 @@ void MilkshapeModel::modifyVBOOpti()
 #if !ENABLE_TIMER_VBO_MAP
 		
 		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		Mesh* pMesh = m_pMeshes+x;
 
-		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pMesh );
+		modifyVertexByJointKernel(  pVertexArrayStatic, pVertexArrayDynamic, pIndexJoint, pMesh );
 
 #endif
 
