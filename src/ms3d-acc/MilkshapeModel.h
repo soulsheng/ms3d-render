@@ -47,6 +47,8 @@ class MilkshapeModel : public Model
 
 		void modifyVBO();
 
+		void modifyVBOOpti();
+
 protected:
 	void PreSetup();
 
