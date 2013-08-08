@@ -51,6 +51,8 @@ protected:
 	void updateJoints(float fTime);
 
 	void modifyVertexByJoint();
+	void modifyVertexByJointKernel( float* pVertexArray , Mesh* pMesh );
+	void modifyVertexByJointKernelOpti( float* pVertexArray , Mesh* pMesh );
 
 	void getPlayTime(float fSpeed, float fStartTime, float fEndTime, bool bLoop);
 	

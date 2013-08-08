@@ -330,137 +330,42 @@ void MilkshapeModel::renderVBO()
 
 void MilkshapeModel::modifyVBO()
 {
-
-	vgMs3d::CVector3 vecNormal;
-	vgMs3d::CVector3 vecVertex;
-
-	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
+// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
-		int vertexCnt = 0;
-
 		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
 		float* pVertexArray = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
+
 #if !ENABLE_TIMER_VBO_MAP
-		//遍历Mesh的每个三角面
-		for(int y = 0; y < m_pMeshes[x].m_usNumTris; y++)
-		{
-			//Set triangle pointer to triangle #1
-			Triangle * pTri = &m_pTriangles[m_pMeshes[x].m_uspIndices[y]];
+		
+		Mesh* pMesh = m_pMeshes+x;
 
-			// 遍历三角面的三个顶点 
-			for(int z = 0; z < 3; z++)
-			{
-				//Get the vertex
-				Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+		modifyVertexByJointKernel( pVertexArray ,pMesh );
 
-				//If it has no bone, render as is
-				if(pVert->m_cBone == -1)
-				{
-					//Send all 3 components without modification
-					vecNormal = pTri->m_vNormals[z];
-					vecVertex = pVert->m_vVert;
-				}
-				//Otherwise, transform the vertices and normals before displaying them
-				else
-				{
-					MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
-					// Transform the normals
-					// vecNormal = pTri->m_vNormals[z];
-					// Only rotate it, no translation
-					// 当前版本不计算法线					
-					// vecNormal.Transform3(pJoint->m_matFinal);
-
-					// Transform the vertex
-					vecVertex = pVert->m_vVert;
-					// translate as well as rotate
-					vecVertex.Transform4(pJoint->m_matFinal);
-
-				}
-
-				vertexCnt += 2;
-
-				// 法线没有被计算和拷贝
-				pVertexArray[vertexCnt++] = vecNormal[0];
-				pVertexArray[vertexCnt++] = vecNormal[1];
-				pVertexArray[vertexCnt++] = vecNormal[2];
-
-				pVertexArray[vertexCnt++] = vecVertex[0];
-				pVertexArray[vertexCnt++] = vecVertex[1];
-				pVertexArray[vertexCnt++] = vecVertex[2];
-			}
-		}
 #endif
+
 		glUnmapBuffer( GL_ARRAY_BUFFER );
 		glBindBuffer( GL_ARRAY_BUFFER, NULL );
 	}
-
 
 }
 
 void MilkshapeModel::modifyVBOOpti()
 {
-
-	vgMs3d::CVector3 vecNormal;
-	vgMs3d::CVector3 vecVertex;
-
 	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
-		int vertexCnt = 0;
-
 		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
 		float* pVertexArray = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
+
 #if !ENABLE_TIMER_VBO_MAP
-		//遍历Mesh的每个三角面
-		for(int y = 0; y < m_pMeshes[x].m_usNumTris; y++)
-		{
-			//Set triangle pointer to triangle #1
-			Triangle * pTri = &m_pTriangles[m_pMeshes[x].m_uspIndices[y]];
+		
+		Mesh* pMesh = m_pMeshes+x;
 
-			// 遍历三角面的三个顶点 
-			for(int z = 0; z < 3; z++)
-			{
-				//Get the vertex
-				Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+		modifyVertexByJointKernelOpti( pVertexArray ,pMesh );
 
-				//If it has no bone, render as is
-				if(pVert->m_cBone == -1)
-				{
-					//Send all 3 components without modification
-					vecNormal = pTri->m_vNormals[z];
-					vecVertex = pVert->m_vVert;
-				}
-				//Otherwise, transform the vertices and normals before displaying them
-				else
-				{
-					MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
-					// Transform the normals
-					// vecNormal = pTri->m_vNormals[z];
-					// Only rotate it, no translation
-					// 当前版本不计算法线					
-					// vecNormal.Transform3(pJoint->m_matFinal);
-
-					// Transform the vertex
-					vecVertex = pVert->m_vVert;
-					// translate as well as rotate
-					vecVertex.Transform4(pJoint->m_matFinal);
-
-				}
-
-				vertexCnt += 2;
-
-				// 法线没有被计算和拷贝
-				pVertexArray[vertexCnt++] = vecNormal[0];
-				pVertexArray[vertexCnt++] = vecNormal[1];
-				pVertexArray[vertexCnt++] = vecNormal[2];
-
-				pVertexArray[vertexCnt++] = vecVertex[0];
-				pVertexArray[vertexCnt++] = vecVertex[1];
-				pVertexArray[vertexCnt++] = vecVertex[2];
-			}
-		}
 #endif
+
 		glUnmapBuffer( GL_ARRAY_BUFFER );
 		glBindBuffer( GL_ARRAY_BUFFER, NULL );
 	}
