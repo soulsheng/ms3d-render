@@ -522,18 +522,42 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 	//遍历每个顶点
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
+#if 0
+		float *sourceVec = pVertexArrayRaw + 8*y+5;
+		float *desVec = pVertexArrayDynamic + 8*y+5;
 
-		int index =  8*y+5 ;
-		vgMs3d::CVector3 vecVertex(pVertexArrayRaw+index);
+		vgMs3d::CVector3 vecVertex(sourceVec);
 		
-		MS3DJoint * pJoint = m_pJoints + pIndexJoint[y] ;
+		vecVertex.Transform4( m_pJoints[ pIndexJoint[y] ].m_matFinal );
 
-		vecVertex.Transform4(pJoint->m_matFinal);
+		desVec[ 0 ] = vecVertex[0];
+		desVec[ 1 ] = vecVertex[1];
+		desVec[ 2 ] = vecVertex[2];
+#else
+		float *sourceVec = pVertexArrayRaw + 8*y+5;
+		float *desVec = pVertexArrayDynamic + 8*y+5;
 
-		pVertexArrayDynamic[ index ] = vecVertex[0];
-		pVertexArrayDynamic[ index+1 ] = vecVertex[1];
-		pVertexArrayDynamic[ index+2 ] = vecVertex[2];
+		const float* mat = m_pJoints[ pIndexJoint[y] ].m_matFinal.Get();
+		
+		desVec[0] =
+			(mat[0*4+0] * sourceVec[0] +
+			mat[1*4+0] * sourceVec[1] +
+			mat[2*4+0] * sourceVec[2] +
+			mat[3*4+0]) ;
+		
+		desVec[1] =
+			(mat[0*4+1] * sourceVec[0] +
+			mat[1*4+1] * sourceVec[1] +
+			mat[2*4+1] * sourceVec[2] +
+			mat[3*4+1]) ;
 
+		desVec[2] =
+			(mat[0*4+2] * sourceVec[0] +
+			mat[1*4+2] * sourceVec[1] +
+			mat[2*4+2] * sourceVec[2] +
+			mat[3*4+2]) ;
+
+#endif
 	}//for y
 }
 
