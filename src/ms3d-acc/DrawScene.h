@@ -6,6 +6,7 @@
 
 #include "MilkshapeModel.h"	
 										// Header File For Milkshape File
+#include "timerOMP.h"
 #include "timer.h"
 
 class DrawScene

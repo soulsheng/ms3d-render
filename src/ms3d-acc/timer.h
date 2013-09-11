@@ -30,7 +30,7 @@ public:
 	double readTimer(int handle);
 
 
-	void printfTimer();
+	void printfTimer( std::ostringstream &oss );
 	void insertTimer(std::string timeString, double timeValue);
 
 protected:

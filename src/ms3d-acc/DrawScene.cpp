@@ -101,7 +101,9 @@ int DrawScene::InitGL( )
 
 void DrawScene::printfTimer()
 {
-	_timer.printfTimer();
+	std::ostringstream oss;
+	_timer.printfTimer( oss );
+	std::cout << oss.str();
 }
 
 DrawScene::DrawScene()
