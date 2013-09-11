@@ -192,6 +192,7 @@ public:
 		materialID = 0;
 		pVertexArrayStatic = NULL;
 		pVertexArrayDynamic = NULL;
+		pVertexArrayRaw = NULL;
 		pIndexJoint = NULL;
 		numOfVertex = 0;
 	}
@@ -200,14 +201,20 @@ public:
 	{
 		if (pVertexArrayStatic != NULL)
 		{
-			delete pVertexArrayStatic;
+			_aligned_free(pVertexArrayStatic);//delete pVertexArrayStatic;
 			pVertexArrayStatic = NULL;
 		}
 
 		if (pVertexArrayDynamic != NULL)
 		{
-			delete pVertexArrayDynamic;
+			_aligned_free(pVertexArrayDynamic);//delete pVertexArrayDynamic;
 			pVertexArrayDynamic = NULL;
+		}
+
+		if (pVertexArrayRaw != NULL)
+		{
+			_aligned_free(pVertexArrayRaw);//delete pVertexArrayRaw;
+			pVertexArrayRaw = NULL;
 		}
 
 		if (pIndexJoint != NULL)
@@ -236,6 +243,9 @@ public:
 	{
 		m_pMesh = NULL;
 		m_numberOfMesh = 0;
+
+		m_pMatrix = NULL;
+		m_numberofMatrix = 0;
 	}
 
 	~Ms3dIntervelData()
@@ -245,11 +255,20 @@ public:
 			delete[] m_pMesh;
 			m_pMesh = NULL;
 		}
+
+		if (m_pMatrix != NULL)
+		{
+			delete[] m_pMatrix;
+			m_pMatrix = NULL;
+		}
 	}
 
 public:
 	Ms3dVertexArrayMesh* m_pMesh;
 	int m_numberOfMesh;
+
+	float * m_pMatrix;
+	float m_numberofMatrix;
 };
 
 // Default alignment

@@ -15,6 +15,7 @@
 #include "Model.h"
 #include "ms3d-acc.h"
 //using namespace vgMs3d;
+#include <omp.h>
 
 Model::Model()
 {
@@ -333,10 +334,12 @@ void Model::setupVertexArray()
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
-		float* pVertexArrayStatic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
-		float* pVertexArrayDynamic = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
 		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3];
-		float* pVertexArrayRaw = new float[(2+3+3) * m_pMeshes[x].m_usNumTris * 3];
+
+		int nVertexSize = (2+3+3) * m_pMeshes[x].m_usNumTris * 3;
+		float* pVertexArrayStatic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
+		float* pVertexArrayDynamic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
+		float* pVertexArrayRaw = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
 
 		m_meshVertexData.m_pMesh[x].numOfVertex = m_pMeshes[x].m_usNumTris * 3;
 		m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
@@ -517,9 +520,14 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 
 void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
 {
-	int vertexCnt = 0;
+
+	float *pSrcPos = pVertexArrayRaw +5;
+	float *pDestPos = pVertexArrayDynamic + 5;
 
 	//遍历每个顶点
+#if ENABLE_OPENMP
+#pragma omp parallel for
+#endif
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
 #if 0
@@ -534,29 +542,37 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 		desVec[ 1 ] = vecVertex[1];
 		desVec[ 2 ] = vecVertex[2];
 #else
-		float *sourceVec = pVertexArrayRaw + 8*y+5;
-		float *desVec = pVertexArrayDynamic + 8*y+5;
 
+		float sourceVec[3], accumVecPos[3];
+		for(int j=0;j<3;j++)
+		{
+			sourceVec[j] = pSrcPos[j+8*y];
+			accumVecPos[j] = 0.0f ;
+		}
+	
 		const float* mat = m_pJoints[ pIndexJoint[y] ].m_matFinal.Get();
-		
-		desVec[0] =
+
+		accumVecPos[0] =
 			(mat[0*4+0] * sourceVec[0] +
 			mat[1*4+0] * sourceVec[1] +
 			mat[2*4+0] * sourceVec[2] +
 			mat[3*4+0]) ;
 		
-		desVec[1] =
+		accumVecPos[1] =
 			(mat[0*4+1] * sourceVec[0] +
 			mat[1*4+1] * sourceVec[1] +
 			mat[2*4+1] * sourceVec[2] +
 			mat[3*4+1]) ;
 
-		desVec[2] =
+		accumVecPos[2] =
 			(mat[0*4+2] * sourceVec[0] +
 			mat[1*4+2] * sourceVec[1] +
 			mat[2*4+2] * sourceVec[2] +
 			mat[3*4+2]) ;
 
+		pDestPos[0+8*y] = accumVecPos[0];
+		pDestPos[1+8*y] = accumVecPos[1];
+		pDestPos[2+8*y] = accumVecPos[2];
 #endif
 	}//for y
 }
