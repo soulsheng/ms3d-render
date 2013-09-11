@@ -36,12 +36,14 @@ public:
 protected:
 	void error(const char* errorMsg);
 	void error(std::string errorMsg);
+	void warmup();
 
 private:
 	std::vector<Timer*> _timers;      /**< _timers vector to Timer objects */
 
 	TimerValueList	_timeValueList;
 
+	DWORD_PTR oldmask;
 };
 
 

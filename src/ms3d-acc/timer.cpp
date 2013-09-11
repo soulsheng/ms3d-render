@@ -47,6 +47,8 @@ int CTimer::startTimer(int handle)
         return SDK_FAILURE;
     }
 
+	warmup();
+
 #ifdef _WIN32
     QueryPerformanceCounter((LARGE_INTEGER*)&(_timers[handle]->_start));	
 #else
@@ -75,6 +77,8 @@ int CTimer::stopTimer(int handle)
     gettimeofday(&s, 0);
     n = (long long)s.tv_sec * (long long)1.0E3+ (long long)s.tv_usec / (long long)1.0E3;
 #endif
+
+	SetThreadAffinityMask(::GetCurrentThread(), oldmask);
 
     n -= _timers[handle]->_start;
     _timers[handle]->_start = 0;
@@ -167,4 +171,17 @@ void CTimer::insertTimer( std::string timeString, double timeValue)
 		return;
 	}
 	_timeValueList.insert( std::make_pair(timeString, timeValue) );
+}
+
+void CTimer::warmup()
+{
+	volatile int warmingUp = 1;
+#pragma omp parallel for
+	for (int i=1; i<10000000; i++)
+	{
+#pragma omp atomic
+		warmingUp *= i;
+	}
+
+	oldmask = SetThreadAffinityMask(::GetCurrentThread(), 1);
 }
