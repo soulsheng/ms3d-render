@@ -114,7 +114,13 @@ void Model::draw()
 		// Draw by group
 		for ( int i = 0; i < m_usNumMeshes; i++ )
 		{
+#if ENABLE_CROSSARRAY
 			glInterleavedArrays(GL_T2F_N3F_V3F, 0, m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
+#else
+			glVertexPointer(3, GL_FLOAT, 12, m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
+			glEnableClientState( GL_VERTEX_ARRAY );
+#endif
+
 
 #if RENDERMODE_POINT
 			glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );			
@@ -122,6 +128,11 @@ void Model::draw()
 			glDrawElements(GL_TRIANGLES, m_meshVertexData.m_pMesh[i].numOfVertex,
 				GL_UNSIGNED_INT , m_pIndexArray);
 #endif
+			
+#if !ENABLE_CROSSARRAY
+			glDisableClientState( GL_VERTEX_ARRAY );
+#endif
+
 		}
 	}
 
@@ -310,7 +321,13 @@ void Model::modifyVertexByJointInit()
 		modifyVertexByJointInitKernel(  pVertexArrayRaw, pVertexArrayStatic, pIndexJoint, pMesh ); // 更新pVertexArrayStatic
 
 #if !RENDERMODE_MOVING
+
+#if  ENABLE_CROSSARRAY
 		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  (2+3+3) * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
+#else
+		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  3 * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
+#endif
+
 #endif
 	}
 }
@@ -349,8 +366,11 @@ void Model::setupVertexArray()
 	{
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
 		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3];
-
+#if  ENABLE_CROSSARRAY
 		int nVertexSize = (2+3+3) * m_pMeshes[x].m_usNumTris * 3;
+#else
+		int nVertexSize = 3 * m_pMeshes[x].m_usNumTris * 3;
+#endif
 		float* pVertexArrayStatic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
 		float* pVertexArrayDynamic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
 		float* pVertexArrayRaw = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
@@ -456,14 +476,14 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndex
 				vecVertex.Transform4(pJoint->m_matFinal);
 
 			}
-
+#if ENABLE_CROSSARRAY
 			vertexCnt += 2;
 
 			// 法线没有被计算和拷贝
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[0];
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[1];
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[2];
-
+#endif
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
@@ -509,24 +529,33 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 				vecVertex.Transform4(pJoint->m_matFinal);
 
 			}
-
+#if ENABLE_CROSSARRAY
 			vertexCnt += 2;
 
 			// 法线没有被计算和拷贝
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[0];
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[1];
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[2];
-
+#endif
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
 
+#if ENABLE_CROSSARRAY
 			if(pVertexArrayStatic)
 			{
-				pVertexArrayStatic[ 8*(3*y+z) + 5 ] = pVert->m_vVert[0];
-				pVertexArrayStatic[ 8*(3*y+z) + 6 ] = pVert->m_vVert[1];
-				pVertexArrayStatic[ 8*(3*y+z) + 7 ] = pVert->m_vVert[2];
+				pVertexArrayStatic[ 8*(3*y+z) +5 ] = pVert->m_vVert[0];
+				pVertexArrayStatic[ 8*(3*y+z) +6 ] = pVert->m_vVert[1];
+				pVertexArrayStatic[ 8*(3*y+z) +7 ] = pVert->m_vVert[2];
 			}
+#else
+			if(pVertexArrayStatic)
+			{
+				pVertexArrayStatic[ 3*(3*y+z) ] = pVert->m_vVert[0];
+				pVertexArrayStatic[ 3*(3*y+z)+1 ] = pVert->m_vVert[1];
+				pVertexArrayStatic[ 3*(3*y+z)+2 ] = pVert->m_vVert[2];
+			}
+#endif
 		}//for z
 	}//for y
 }
@@ -534,9 +563,14 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 
 void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
 {
+#if  ENABLE_CROSSARRAY
+	int nStride = 5;
+#else
+	int nStride = 0;
+#endif
 
-	float *pSrcPos = pVertexArrayRaw +5;
-	float *pDestPos = pVertexArrayDynamic + 5;
+	float *pSrcPos = pVertexArrayRaw +nStride;
+	float *pDestPos = pVertexArrayDynamic + nStride;
 
 	//遍历每个顶点
 #if ENABLE_OPENMP
@@ -557,8 +591,8 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 		desVec[ 2 ] = vecVertex[2];
 #else
 
-		float* pSrcPosOne = pSrcPos+8*y;
-		float* pDestPosOne = pDestPos+8*y;
+		float* pSrcPosOne = pSrcPos+(3+nStride)*y;
+		float* pDestPosOne = pDestPos+(3+nStride)*y;
 		float* pMatOne = m_pJointsMatrix+16*pIndexJoint[y];
 
 		pDestPosOne[0] =

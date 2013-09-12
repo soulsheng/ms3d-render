@@ -256,8 +256,11 @@ void MilkshapeModel::initializeVBO()
 	for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
 	{
 		Ms3dVertexArrayMesh* pMesh = &m_meshVertexData.m_pMesh[i];
-
+#if  ENABLE_CROSSARRAY
 		int nSizeBufferVertex = (2+3+3) * m_pMeshes[i].m_usNumTris * 3 * sizeof(float);
+#else
+		int nSizeBufferVertex = 3 * m_pMeshes[i].m_usNumTris * 3 * sizeof(float);
+#endif
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i]);
 
@@ -307,12 +310,16 @@ void MilkshapeModel::renderVBO()
 
 			glColor3f(1.0f, 1.0f, 1.0f);
 			//glPointSize(2.0f);
-
+#if  ENABLE_CROSSARRAY
 			glVertexPointer( 3, GL_FLOAT, 32 , BUFFER_OFFSET( 20 ) );
 			glTexCoordPointer( 2, GL_FLOAT, 32 , BUFFER_OFFSET( 0 ) );
 
 			glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 			glEnableClientState( GL_VERTEX_ARRAY );
+#else
+			glVertexPointer( 3, GL_FLOAT, 12 , BUFFER_OFFSET( 0 ) );
+			glEnableClientState( GL_VERTEX_ARRAY );
+#endif
 
 #if RENDERMODE_POINT
 			glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );
@@ -321,7 +328,9 @@ void MilkshapeModel::renderVBO()
 
 #endif
 
+#if  ENABLE_CROSSARRAY
 			glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+#endif
 			glDisableClientState( GL_VERTEX_ARRAY );
 
 			glBindBufferARB( GL_ARRAY_BUFFER_ARB, NULL );

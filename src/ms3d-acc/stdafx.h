@@ -61,3 +61,5 @@ using namespace std;
 #define ENABLE_OPTIMIZE	1 //优化
 
 #define ENABLE_OPENMP	1 //OpenMP
+
+#define ENABLE_CROSSARRAY	0 //交错数组
