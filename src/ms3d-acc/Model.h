@@ -81,6 +81,7 @@ protected:
 		//	Joints used
 		int m_usNumJoints;
 		MS3DJoint*	m_pJoints;
+		float*		m_pJointsMatrix;
 
 		//Total time for model animation
 		float m_fTotalTime;

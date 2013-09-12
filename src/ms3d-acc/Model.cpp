@@ -42,6 +42,8 @@ Model::Model()
 
 	m_pIndexArray = NULL;
 	maxMeshVertexNumber = 0;
+
+	m_pJointsMatrix = NULL;
 }
 
 Model::~Model()
@@ -85,6 +87,13 @@ Model::~Model()
 		delete[] m_pIndexArray;
 		m_pIndexArray = NULL;
 	}
+
+	if (m_pJointsMatrix)
+	{
+		delete[] m_pJointsMatrix;
+		m_pJointsMatrix = NULL;
+	}
+	
 }
 
 void Model::draw() 
@@ -230,6 +239,11 @@ void Model::updateJoints(float fTime)
 		else
 			pJoint->m_matFinal = m_pJoints[pJoint->m_sParent].m_matFinal * matFinal;
 	}//x
+
+	for (int i=0;i<m_usNumJoints;i++)
+	{
+		memcpy(m_pJointsMatrix+16*i, m_pJoints[i].m_matFinal.Get(), sizeof(float)*16 );
+	}
 	}//i
 
 }
@@ -545,26 +559,25 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 
 		float* pSrcPosOne = pSrcPos+8*y;
 		float* pDestPosOne = pDestPos+8*y;
-	
-		const float* mat = m_pJoints[ pIndexJoint[y] ].m_matFinal.Get();
+		float* pMatOne = m_pJointsMatrix+16*pIndexJoint[y];
 
 		pDestPosOne[0] =
-			(mat[0*4+0] * pSrcPosOne[0] +
-			mat[1*4+0] * pSrcPosOne[1] +
-			mat[2*4+0] * pSrcPosOne[2] +
-			mat[3*4+0]) ;
+			(pMatOne[0*4+0] * pSrcPosOne[0] +
+			pMatOne[1*4+0] * pSrcPosOne[1] +
+			pMatOne[2*4+0] * pSrcPosOne[2] +
+			pMatOne[3*4+0]) ;
 
 		pDestPosOne[1] =
-			(mat[0*4+1] * pSrcPosOne[0] +
-			mat[1*4+1] * pSrcPosOne[1] +
-			mat[2*4+1] * pSrcPosOne[2] +
-			mat[3*4+1]) ;
+			(pMatOne[0*4+1] * pSrcPosOne[0] +
+			pMatOne[1*4+1] * pSrcPosOne[1] +
+			pMatOne[2*4+1] * pSrcPosOne[2] +
+			pMatOne[3*4+1]) ;
 
 		pDestPosOne[2] =
-			(mat[0*4+2] * pSrcPosOne[0] +
-			mat[1*4+2] * pSrcPosOne[1] +
-			mat[2*4+2] * pSrcPosOne[2] +
-			mat[3*4+2]) ;
+			(pMatOne[0*4+2] * pSrcPosOne[0] +
+			pMatOne[1*4+2] * pSrcPosOne[1] +
+			pMatOne[2*4+2] * pSrcPosOne[2] +
+			pMatOne[3*4+2]) ;
 
 #endif
 	}//for y
