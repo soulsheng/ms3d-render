@@ -543,36 +543,29 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 		desVec[ 2 ] = vecVertex[2];
 #else
 
-		float sourceVec[3], accumVecPos[3];
-		for(int j=0;j<3;j++)
-		{
-			sourceVec[j] = pSrcPos[j+8*y];
-			accumVecPos[j] = 0.0f ;
-		}
+		float* pSrcPosOne = pSrcPos+8*y;
+		float* pDestPosOne = pDestPos+8*y;
 	
 		const float* mat = m_pJoints[ pIndexJoint[y] ].m_matFinal.Get();
 
-		accumVecPos[0] =
-			(mat[0*4+0] * sourceVec[0] +
-			mat[1*4+0] * sourceVec[1] +
-			mat[2*4+0] * sourceVec[2] +
+		pDestPosOne[0] =
+			(mat[0*4+0] * pSrcPosOne[0] +
+			mat[1*4+0] * pSrcPosOne[1] +
+			mat[2*4+0] * pSrcPosOne[2] +
 			mat[3*4+0]) ;
-		
-		accumVecPos[1] =
-			(mat[0*4+1] * sourceVec[0] +
-			mat[1*4+1] * sourceVec[1] +
-			mat[2*4+1] * sourceVec[2] +
+
+		pDestPosOne[1] =
+			(mat[0*4+1] * pSrcPosOne[0] +
+			mat[1*4+1] * pSrcPosOne[1] +
+			mat[2*4+1] * pSrcPosOne[2] +
 			mat[3*4+1]) ;
 
-		accumVecPos[2] =
-			(mat[0*4+2] * sourceVec[0] +
-			mat[1*4+2] * sourceVec[1] +
-			mat[2*4+2] * sourceVec[2] +
+		pDestPosOne[2] =
+			(mat[0*4+2] * pSrcPosOne[0] +
+			mat[1*4+2] * pSrcPosOne[1] +
+			mat[2*4+2] * pSrcPosOne[2] +
 			mat[3*4+2]) ;
 
-		pDestPos[0+8*y] = accumVecPos[0];
-		pDestPos[1+8*y] = accumVecPos[1];
-		pDestPos[2+8*y] = accumVecPos[2];
 #endif
 	}//for y
 }
