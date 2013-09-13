@@ -64,6 +64,9 @@ using namespace std;
 
 #define ENABLE_CROSSARRAY	0 //交错数组
 
+#define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
+#define ENABLE_OPTIMIZE_SSE	0 //SSE
+
 #if ENABLE_CROSSARRAY
 #define ELEMENT_COUNT_POINT		8
 #define STRIDE_POINT			5
@@ -72,6 +75,6 @@ using namespace std;
 #define STRIDE_POINT			0
 #endif
 
-#define ELEMENT_COUNT_LINE		4
+#define MATRIX_SIZE_LINE		4
 
-#define ELEMENT_COUNT_MATIRX	(ELEMENT_COUNT_LINE*4)
+#define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)

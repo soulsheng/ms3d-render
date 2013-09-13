@@ -165,7 +165,8 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	pPtr += 2;
 	//Allocate memory
 	m_pJoints = new MS3DJoint[m_usNumJoints];
-	m_pJointsMatrix = new float[m_usNumJoints*16];
+	//m_pJointsMatrix = new float[m_usNumJoints*16];
+	m_pJointsMatrix = (float*) _aligned_malloc(m_usNumJoints*ELEMENT_COUNT_MATIRX * sizeof(float), 16);
 
 	//Read in joint info
 	for(int x = 0; x < m_usNumJoints; x++)

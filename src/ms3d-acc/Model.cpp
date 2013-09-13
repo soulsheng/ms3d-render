@@ -92,7 +92,7 @@ Model::~Model()
 
 	if (m_pJointsMatrix)
 	{
-		delete[] m_pJointsMatrix;
+		_aligned_free(m_pJointsMatrix);//delete[] m_pJointsMatrix;
 		m_pJointsMatrix = NULL;
 	}
 	
@@ -255,8 +255,22 @@ void Model::updateJoints(float fTime)
 
 	for (int i=0;i<m_usNumJoints;i++)
 	{
+#if  !ENABLE_OPTIMIZE_SSE
 		memcpy(m_pJointsMatrix+16*i, m_pJoints[i].m_matFinal.Get(), sizeof(float)*16 );
+#else
+		float* pDstOne = m_pJointsMatrix+16*i;
+		float* pSrcOne = m_pJoints[i].m_matFinal.Get();
+
+		for (int j=0;j<4;j++)
+		{
+			for(int k=0;k<4;k++)
+			{
+				pDstOne[j*4 + k] = pSrcOne[k*4 + j];
+			}
+		}
+#endif
 	}
+
 	}//i
 
 }
@@ -349,7 +363,13 @@ void Model::modifyVertexByJoint()
 		Mesh* pMesh = m_pMeshes+x;
 		
 #if ENABLE_OPTIMIZE
+
+#if ENABLE_OPTIMIZE_SSE
+		modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pMesh );
+#else
 		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pMesh );
+#endif
+
 #else
 		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pMesh );
 #endif
@@ -576,13 +596,35 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 #endif
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
-
+#if 0
 		float* pSrcPosOne = pSrcPos+ELEMENT_COUNT_POINT*y;
 		float* pDestPosOne = pDestPos+ELEMENT_COUNT_POINT*y;
 		float* pMatOne = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
 
 		kernelElement( pSrcPosOne, pDestPosOne, pMatOne );
-		
+#else
+		float* pIn = pSrcPos+ELEMENT_COUNT_POINT*y;
+		float* pOut = pDestPos+ELEMENT_COUNT_POINT*y;
+		float* pMat = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
+
+		pOut[0] =
+			(pMat[0*4+0] * pIn[0] +
+			pMat[1*4+0] * pIn[1] +
+			pMat[2*4+0] * pIn[2] +
+			pMat[3*4+0]) ;
+
+		pOut[1] =
+			(pMat[0*4+1] * pIn[0] +
+			pMat[1*4+1] * pIn[1] +
+			pMat[2*4+1] * pIn[2] +
+			pMat[3*4+1]) ;
+
+		pOut[2] =
+			(pMat[0*4+2] * pIn[0] +
+			pMat[1*4+2] * pIn[1] +
+			pMat[2*4+2] * pIn[2] +
+			pMat[3*4+2]) ;
+#endif
 	}//for y
 }
 
@@ -607,3 +649,317 @@ void Model::kernelElement( float* pIn, float* pOut, float* pMat )
 		pMat[3*4+2]) ;
 }
 
+// --SSE----------------------------------------------------------------------------------
+
+
+/** Performing the transpose of a 4x4 matrix of single precision floating
+    point values.
+    Arguments r0, r1, r2, and r3 are __m128 values whose elements
+    form the corresponding rows of a 4x4 matrix.
+    The matrix transpose is returned in arguments r0, r1, r2, and
+    r3 where r0 now holds column 0 of the original matrix, r1 now
+    holds column 1 of the original matrix, etc.
+*/
+#define __MM_TRANSPOSE4x4_PS(r0, r1, r2, r3)                                            \
+    {                                                                                   \
+        __m128 tmp3, tmp2, tmp1, tmp0;                                                  \
+                                                                                        \
+                                                            /* r00 r01 r02 r03 */       \
+                                                            /* r10 r11 r12 r13 */       \
+                                                            /* r20 r21 r22 r23 */       \
+                                                            /* r30 r31 r32 r33 */       \
+                                                                                        \
+        tmp0 = _mm_unpacklo_ps(r0, r1);                       /* r00 r10 r01 r11 */     \
+        tmp2 = _mm_unpackhi_ps(r0, r1);                       /* r02 r12 r03 r13 */     \
+        tmp1 = _mm_unpacklo_ps(r2, r3);                       /* r20 r30 r21 r31 */     \
+        tmp3 = _mm_unpackhi_ps(r2, r3);                       /* r22 r32 r23 r33 */     \
+                                                                                        \
+        r0 = _mm_movelh_ps(tmp0, tmp1);                         /* r00 r10 r20 r30 */   \
+        r1 = _mm_movehl_ps(tmp1, tmp0);                         /* r01 r11 r21 r31 */   \
+        r2 = _mm_movelh_ps(tmp2, tmp3);                         /* r02 r12 r22 r32 */   \
+        r3 = _mm_movehl_ps(tmp3, tmp2);                         /* r03 r13 r23 r33 */   \
+    }
+
+/// Accumulate four vector of single precision floating point values.
+#define __MM_ACCUM4_PS(a, b, c, d)                                                  \
+	_mm_add_ps(_mm_add_ps(a, b), _mm_add_ps(c, d))
+
+/** Performing dot-product between four vector and three vector of single
+    precision floating point values.
+*/
+#define __MM_DOT4x3_PS(r0, r1, r2, r3, v0, v1, v2)                                  \
+    __MM_ACCUM4_PS(_mm_mul_ps(r0, v0), _mm_mul_ps(r1, v1), _mm_mul_ps(r2, v2), r3)
+
+/// Same as _mm_load_ps, but can help VC generate more optimised code.
+#define __MM_LOAD_PS(p)                                                             \
+	(*(__m128*)(p))
+
+/// Same as _mm_store_ps, but can help VC generate more optimised code.
+#define __MM_STORE_PS(p, v)                                                         \
+	(*(__m128*)(p) = (v))
+
+
+/// Calculate multiply of two vector and plus another vector
+#define __MM_MADD_PS(a, b, c)                                                       \
+	_mm_add_ps(_mm_mul_ps(a, b), c)
+
+/// Linear interpolation
+#define __MM_LERP_PS(t, a, b)                                                       \
+	__MM_MADD_PS(_mm_sub_ps(b, a), t, a)
+//---------------------------------------------------------------------
+// Some useful macro for collapse matrices.
+//---------------------------------------------------------------------
+#if STRUCT_OCL
+#define __LOAD_MATRIX(row0, row1, row2, pMatrix)                        \
+	{                                                                   \
+	row0 = __MM_LOAD_PS(pMatrix[0]);                             \
+	row1 = __MM_LOAD_PS(pMatrix[1]);                             \
+	row2 = __MM_LOAD_PS(pMatrix[2]);                             \
+	}
+
+#define __LERP_MATRIX(row0, row1, row2, weight, pMatrix)                \
+	{                                                                   \
+	row0 = __MM_LERP_PS(weight, row0, __MM_LOAD_PS(pMatrix[0])); \
+	row1 = __MM_LERP_PS(weight, row1, __MM_LOAD_PS(pMatrix[1])); \
+	row2 = __MM_LERP_PS(weight, row2, __MM_LOAD_PS(pMatrix[2])); \
+	}
+
+#define __LOAD_WEIGHTED_MATRIX(row0, row1, row2, weight, pMatrix)       \
+	{                                                                   \
+	row0 = _mm_mul_ps(__MM_LOAD_PS(pMatrix[0]), weight);         \
+	row1 = _mm_mul_ps(__MM_LOAD_PS(pMatrix[1]), weight);         \
+	row2 = _mm_mul_ps(__MM_LOAD_PS(pMatrix[2]), weight);         \
+	}
+
+#define __ACCUM_WEIGHTED_MATRIX(row0, row1, row2, weight, pMatrix)      \
+	{                                                                   \
+	row0 = __MM_MADD_PS(__MM_LOAD_PS(pMatrix[0]), weight, row0); \
+	row1 = __MM_MADD_PS(__MM_LOAD_PS(pMatrix[1]), weight, row1); \
+	row2 = __MM_MADD_PS(__MM_LOAD_PS(pMatrix[2]), weight, row2); \
+	}
+#else
+
+#define __LOAD_MATRIX(row0, row1, row2, pMatrix)                        \
+	{                                                                   \
+	row0 = __MM_LOAD_PS(pMatrix);                             \
+	row1 = __MM_LOAD_PS(pMatrix+4);                             \
+	row2 = __MM_LOAD_PS(pMatrix+8);                             \
+	}
+
+#define __LERP_MATRIX(row0, row1, row2, weight, pMatrix)                \
+	{                                                                   \
+	row0 = __MM_LERP_PS(weight, row0, __MM_LOAD_PS(pMatrix)); \
+	row1 = __MM_LERP_PS(weight, row1, __MM_LOAD_PS(pMatrix+4)); \
+	row2 = __MM_LERP_PS(weight, row2, __MM_LOAD_PS(pMatrix+8)); \
+	}
+
+#define __LOAD_WEIGHTED_MATRIX(row0, row1, row2, weight, pMatrix)       \
+	{                                                                   \
+	row0 = _mm_mul_ps(__MM_LOAD_PS(pMatrix), weight);         \
+	row1 = _mm_mul_ps(__MM_LOAD_PS(pMatrix+4), weight);         \
+	row2 = _mm_mul_ps(__MM_LOAD_PS(pMatrix+8), weight);         \
+	}
+
+#define __ACCUM_WEIGHTED_MATRIX(row0, row1, row2, weight, pMatrix)      \
+	{                                                                   \
+	row0 = __MM_MADD_PS(__MM_LOAD_PS(pMatrix), weight, row0); \
+	row1 = __MM_MADD_PS(__MM_LOAD_PS(pMatrix+4), weight, row1); \
+	row2 = __MM_MADD_PS(__MM_LOAD_PS(pMatrix+8), weight, row2); \
+	}
+
+#endif
+
+/** Fill vector of single precision floating point with selected value.
+    Argument 'fp' is a digit[0123] that represents the fp of argument 'v'.
+*/
+#define __MM_SELECT(v, fp)                                                          \
+    _mm_shuffle_ps((v), (v), _MM_SHUFFLE((fp),(fp),(fp),(fp)))
+
+/** Collapse one-weighted matrix.
+    Eliminated multiply by weight since the weight should be equal to one always
+*/
+#define __COLLAPSE_MATRIX_W1(row0, row1, row2, ppMatrices, pIndices, pWeights)  \
+    {                                                                           \
+        pMatrix0 = blendMatrices +pIndices[0]*MATRIX_SIZE_LINE*4;                                  \
+        __LOAD_MATRIX(row0, row1, row2, pMatrix0);                              \
+    }
+
+
+/// Calculate multiply of two vector and plus another vector
+__m128 MM_MADD_PS(__m128 a, __m128 b, __m128 c)                                                      
+{
+	return _mm_add_ps(_mm_mul_ps(a, b), c);
+}
+
+/// Linear interpolation
+__m128 MM_LERP_PS(__m128 t, __m128 a, __m128 b)                                                      
+{
+	return MM_MADD_PS(_mm_sub_ps(b, a), t, a);
+}
+
+void LOAD_MATRIX(__m128*row0, __m128*row1, __m128*row2, float *pMatrix)                        
+	{                                                                   
+	*row0 = *(__m128*)(pMatrix);                             
+	*row1 = *(__m128*)(pMatrix+4);                             
+	*row2 = *(__m128*)(pMatrix+8);                             
+	}
+
+void LERP_MATRIX(__m128*row0, __m128*row1, __m128*row2, __m128 *weight, float *pMatrix)                
+	{                                                                   
+	*row0 = MM_LERP_PS(*weight, *row0, *(__m128*)(pMatrix)); 
+	*row1 = MM_LERP_PS(*weight, *row1, *(__m128*)(pMatrix+4)); 
+	*row2 = MM_LERP_PS(*weight, *row2, *(__m128*)(pMatrix+8)); 
+	}
+
+void LOAD_WEIGHTED_MATRIX(__m128*row0, __m128*row1, __m128*row2, __m128 *weight, float *pMatrix)       
+	{                                                                   
+	*row0 = _mm_mul_ps(*(__m128*)(pMatrix), *weight);         
+	*row1 = _mm_mul_ps(*(__m128*)(pMatrix+4), *weight);         
+	*row2 = _mm_mul_ps(*(__m128*)(pMatrix+8), *weight);         
+	}
+
+void ACCUM_WEIGHTED_MATRIX(__m128*row0, __m128*row1, __m128*row2, __m128 *weight, float *pMatrix)      
+	{                                                                   
+	*row0 = MM_MADD_PS(*(__m128*)(pMatrix), *weight, *row0); 
+	*row1 = MM_MADD_PS(*(__m128*)(pMatrix+4), *weight, *row1); 
+	*row2 = MM_MADD_PS(*(__m128*)(pMatrix+8), *weight, *row2); 
+	}
+
+void  COLLAPSE_MATRIX_W1(__m128*row0, __m128*row1, __m128*row2, float *ppMatrices, unsigned short *pIndices, float *pWeights)  
+	{                                                                           
+		float * pMatrix0;               
+	pMatrix0 = ppMatrices +pIndices[0]*MATRIX_SIZE_LINE*4;                                  
+	LOAD_MATRIX(row0, row1, row2, pMatrix0);                             
+	}
+
+void  COLLAPSE_MATRIX_W2(__m128*row0, __m128*row1, __m128*row2, float *ppMatrices, unsigned short *pIndices, float *pWeights) 
+    {                                                                          
+		__m128 weight = _mm_load_ps1(pWeights + 1);                                   
+		float * pMatrix0, *pMatrix1;               
+        pMatrix0 = ppMatrices +pIndices[0]*MATRIX_SIZE_LINE*4;                                    
+        LOAD_MATRIX(row0, row1, row2, pMatrix0);                              
+        pMatrix1 = ppMatrices +pIndices[1]*MATRIX_SIZE_LINE*4;                                    
+        LERP_MATRIX(row0, row1, row2, &weight, pMatrix1);                      
+    }
+
+/** Collapse three-weighted matrix.
+*/
+void  COLLAPSE_MATRIX_W3(__m128*row0, __m128*row1, __m128*row2, float *ppMatrices, unsigned short *pIndices, float *pWeights)  
+    {                                                                           
+        __m128 weight = _mm_load_ps1(pWeights + 0);                                    
+		float * pMatrix0, *pMatrix1, *pMatrix2;               
+        pMatrix0 = ppMatrices + pIndices[0]*MATRIX_SIZE_LINE*4;                                     
+        LOAD_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix0);             
+        weight = _mm_load_ps1(pWeights + 1);                                    
+        pMatrix1 = ppMatrices + pIndices[1]*MATRIX_SIZE_LINE*4;                                    
+        ACCUM_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix1);           
+        weight = _mm_load_ps1(pWeights + 2);                                   
+        pMatrix2 = ppMatrices + pIndices[2]*MATRIX_SIZE_LINE*4;                                     
+        ACCUM_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix2);            
+    }
+
+/** Collapse four-weighted matrix.
+*/
+void COLLAPSE_MATRIX_W4(__m128*row0, __m128*row1, __m128*row2, float *ppMatrices, unsigned short *pIndices, float *pWeights)  
+    {                                                                           
+        /* Load four blend weights at one time, they will be shuffled later */  
+        __m128 weights = _mm_loadu_ps(pWeights);                                       
+                                                                                
+		float * pMatrix0, *pMatrix1, *pMatrix2, *pMatrix3;               
+        pMatrix0 = ppMatrices + pIndices[0]*MATRIX_SIZE_LINE*4;                                     
+         __m128 weight = __MM_SELECT(weights, 0);                                      
+        LOAD_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix0);             
+        pMatrix1 = ppMatrices + pIndices[1]*MATRIX_SIZE_LINE*4;                                    
+        weight = __MM_SELECT(weights, 1);                                       
+        ACCUM_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix1);            
+        pMatrix2 = ppMatrices + pIndices[2]*MATRIX_SIZE_LINE*4;                                    
+        weight = __MM_SELECT(weights, 2);                                       
+        ACCUM_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix2);           
+        pMatrix3 = ppMatrices + pIndices[3]*MATRIX_SIZE_LINE*4;                                     
+        weight = __MM_SELECT(weights, 3);                                      
+        ACCUM_WEIGHTED_MATRIX(row0, row1, row2, &weight, pMatrix3);            
+    }
+
+void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02, float *blendMatrices)                                                   
+{       
+	* m00 = *(__m128*)(blendMatrices + 0);
+	* m01 = *(__m128*)(blendMatrices + 4);
+	* m02 = *(__m128*)(blendMatrices + 8);
+}
+
+
+void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02,                                                     
+	float *pBlendWeight, unsigned short *pBlendIndex,                                             
+	float *blendMatrices,                                                         
+	int blendWeightStride, int blendIndexStride,                                    
+	int numWeightsPerVertex)                                                   
+	{                                                                           
+	/* Important Note: If reuse pMatrixXXX frequently, M$ VC7.1 will */    
+	/* generate wrong code here!!!                                   */    
+				unsigned short matrixIndex1 = pBlendIndex[0 ]*MATRIX_SIZE_LINE*4;
+
+				__m128 weight = _mm_load_ps1(pBlendWeight);                                   
+
+				* m00 = _mm_mul_ps( *(__m128*)(blendMatrices+matrixIndex1+0) , weight ); 
+				* m01 = _mm_mul_ps( *(__m128*)(blendMatrices+matrixIndex1+4) , weight ); 
+				* m02 = _mm_mul_ps( *(__m128*)(blendMatrices+matrixIndex1+8) , weight ); 
+
+
+				for(int i=1; i<SIZE_PER_BONE; i++)
+				{
+					matrixIndex1 = pBlendIndex[ i ]*MATRIX_SIZE_LINE*4;
+					weight = _mm_load_ps1(pBlendWeight+i);  
+
+					* m00 = _mm_add_ps( _mm_mul_ps( *(__m128*)(blendMatrices+matrixIndex1+0) ,  weight ),  * m00 );
+					* m01 = _mm_add_ps( _mm_mul_ps( *(__m128*)(blendMatrices+matrixIndex1+4) ,  weight ),  * m01 ); 
+					* m02 = _mm_add_ps( _mm_mul_ps( *(__m128*)(blendMatrices+matrixIndex1+8) ,  weight ),  * m02 );
+				}
+		
+	}
+
+
+
+void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, Mesh* pMesh )
+{
+
+
+	//float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
+	float *pDestPos = pVertexArrayDynamic + STRIDE_POINT;
+	float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
+
+	//遍历每个顶点
+	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
+	{
+
+		float* pMatOne = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
+
+		__m128 m00, m01, m02;
+		collapseOneMatrix( &m00, &m01, &m02, pMatOne );
+
+		// Rearrange to column-major matrix with rows shuffled order to: Z 0 X Y
+		__m128 m03 = _mm_setzero_ps();
+		__MM_TRANSPOSE4x4_PS(m02, m03, m00, m01);
+
+		// Load source position
+		__m128 vI0, vI1, vI2;
+#if 0
+		vI0 = __MM_SELECT( pSrcPos[y], 0);  //_mm_load_ps1( &pSrcPos->s[0] );
+		vI1 = __MM_SELECT( pSrcPos[y], 1);  // _mm_load_ps1( &pSrcPos->s[1] );
+		vI2 = __MM_SELECT( pSrcPos[y], 2);  //_mm_load_ps1( &pSrcPos->s[2] );
+#else
+		vI0 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT );
+		vI1 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT + 1 );
+		vI2 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT + 2 );
+
+#endif
+
+		// Transform by collapsed matrix
+		__m128 vO = __MM_DOT4x3_PS(m02, m03, m00, m01, vI0, vI1, vI2);   // z 0 x y
+
+		// Store blended position, no aligned requirement
+		_mm_storeh_pi((__m64*)( pDestPos + y*ELEMENT_COUNT_POINT) , vO);
+		_mm_store_ss( pDestPos + y * ELEMENT_COUNT_POINT + 2 , vO);
+	}
+
+
+}
