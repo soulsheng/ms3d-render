@@ -563,14 +563,10 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 
 void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
 {
-#if  ENABLE_CROSSARRAY
-	int nStride = 5;
-#else
-	int nStride = 0;
-#endif
 
-	float *pSrcPos = pVertexArrayRaw +nStride;
-	float *pDestPos = pVertexArrayDynamic + nStride;
+
+	float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
+	float *pDestPos = pVertexArrayDynamic + STRIDE_POINT;
 
 	//遍历每个顶点
 #if ENABLE_OPENMP
@@ -578,42 +574,29 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 #endif
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
-#if 0
-		float *sourceVec = pVertexArrayRaw + 8*y+5;
-		float *desVec = pVertexArrayDynamic + 8*y+5;
 
-		vgMs3d::CVector3 vecVertex(sourceVec);
-		
-		vecVertex.Transform4( m_pJoints[ pIndexJoint[y] ].m_matFinal );
+		float* pIn = pSrcPos+ELEMENT_COUNT_POINT*y;
+		float* pOut = pDestPos+ELEMENT_COUNT_POINT*y;
+		float* pMat = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
 
-		desVec[ 0 ] = vecVertex[0];
-		desVec[ 1 ] = vecVertex[1];
-		desVec[ 2 ] = vecVertex[2];
-#else
+		//kernelElement( pSrcPosOne, pDestPosOne, pMatOne );
+		pOut[0] =
+			(pMat[0*4+0] * pIn[0] +
+			pMat[1*4+0] * pIn[1] +
+			pMat[2*4+0] * pIn[2] +
+			pMat[3*4+0]) ;
 
-		float* pSrcPosOne = pSrcPos+(3+nStride)*y;
-		float* pDestPosOne = pDestPos+(3+nStride)*y;
-		float* pMatOne = m_pJointsMatrix+16*pIndexJoint[y];
+		pOut[1] =
+			(pMat[0*4+1] * pIn[0] +
+			pMat[1*4+1] * pIn[1] +
+			pMat[2*4+1] * pIn[2] +
+			pMat[3*4+1]) ;
 
-		pDestPosOne[0] =
-			(pMatOne[0*4+0] * pSrcPosOne[0] +
-			pMatOne[1*4+0] * pSrcPosOne[1] +
-			pMatOne[2*4+0] * pSrcPosOne[2] +
-			pMatOne[3*4+0]) ;
-
-		pDestPosOne[1] =
-			(pMatOne[0*4+1] * pSrcPosOne[0] +
-			pMatOne[1*4+1] * pSrcPosOne[1] +
-			pMatOne[2*4+1] * pSrcPosOne[2] +
-			pMatOne[3*4+1]) ;
-
-		pDestPosOne[2] =
-			(pMatOne[0*4+2] * pSrcPosOne[0] +
-			pMatOne[1*4+2] * pSrcPosOne[1] +
-			pMatOne[2*4+2] * pSrcPosOne[2] +
-			pMatOne[3*4+2]) ;
-
-#endif
+		pOut[2] =
+			(pMat[0*4+2] * pIn[0] +
+			pMat[1*4+2] * pIn[1] +
+			pMat[2*4+2] * pIn[2] +
+			pMat[3*4+2]) ;
 	}//for y
 }
 

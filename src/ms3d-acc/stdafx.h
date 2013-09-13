@@ -41,7 +41,7 @@ using namespace std;
 #endif
 #endif
 
-#define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
+#define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
 #define RENDERMODE_MOVING	1	//  1 动画
@@ -52,8 +52,8 @@ using namespace std;
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
 
-#define COUNT_MODEL						43		// 模型数目
-#define COUNT_MODEL_SIMULATE		1//43				// 模拟大模型，43倍共1M顶点数
+#define COUNT_MODEL						1		// 模型数目
+#define COUNT_MODEL_SIMULATE		4				// 模拟大模型，43倍共1M顶点数  1012134个顶点
 
 #define ENABLE_DRAW_REPEAT	0	//1		重复渲染1个模型
 #define ENABLE_DRAW			1	//1		渲染开启
@@ -63,3 +63,15 @@ using namespace std;
 #define ENABLE_OPENMP	1 //OpenMP
 
 #define ENABLE_CROSSARRAY	0 //交错数组
+
+#if ENABLE_CROSSARRAY
+#define ELEMENT_COUNT_POINT		8
+#define STRIDE_POINT			5
+#else
+#define ELEMENT_COUNT_POINT		3
+#define STRIDE_POINT			0
+#endif
+
+#define ELEMENT_COUNT_LINE		4
+
+#define ELEMENT_COUNT_MATIRX	(ELEMENT_COUNT_LINE*4)
