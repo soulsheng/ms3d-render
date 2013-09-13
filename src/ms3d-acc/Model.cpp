@@ -15,7 +15,9 @@
 #include "Model.h"
 #include "ms3d-acc.h"
 //using namespace vgMs3d;
-#include <omp.h>
+#include <omp.h>			// OpenMP
+
+#include <emmintrin.h>		// SSE
 
 Model::Model()
 {
@@ -575,28 +577,33 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
 
-		float* pIn = pSrcPos+ELEMENT_COUNT_POINT*y;
-		float* pOut = pDestPos+ELEMENT_COUNT_POINT*y;
-		float* pMat = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
+		float* pSrcPosOne = pSrcPos+ELEMENT_COUNT_POINT*y;
+		float* pDestPosOne = pDestPos+ELEMENT_COUNT_POINT*y;
+		float* pMatOne = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
 
-		//kernelElement( pSrcPosOne, pDestPosOne, pMatOne );
-		pOut[0] =
-			(pMat[0*4+0] * pIn[0] +
-			pMat[1*4+0] * pIn[1] +
-			pMat[2*4+0] * pIn[2] +
-			pMat[3*4+0]) ;
-
-		pOut[1] =
-			(pMat[0*4+1] * pIn[0] +
-			pMat[1*4+1] * pIn[1] +
-			pMat[2*4+1] * pIn[2] +
-			pMat[3*4+1]) ;
-
-		pOut[2] =
-			(pMat[0*4+2] * pIn[0] +
-			pMat[1*4+2] * pIn[1] +
-			pMat[2*4+2] * pIn[2] +
-			pMat[3*4+2]) ;
+		kernelElement( pSrcPosOne, pDestPosOne, pMatOne );
+		
 	}//for y
+}
+
+void Model::kernelElement( float* pIn, float* pOut, float* pMat )
+{
+	pOut[0] =
+		(pMat[0*4+0] * pIn[0] +
+		pMat[1*4+0] * pIn[1] +
+		pMat[2*4+0] * pIn[2] +
+		pMat[3*4+0]) ;
+
+	pOut[1] =
+		(pMat[0*4+1] * pIn[0] +
+		pMat[1*4+1] * pIn[1] +
+		pMat[2*4+1] * pIn[2] +
+		pMat[3*4+1]) ;
+
+	pOut[2] =
+		(pMat[0*4+2] * pIn[0] +
+		pMat[1*4+2] * pIn[1] +
+		pMat[2*4+2] * pIn[2] +
+		pMat[3*4+2]) ;
 }
 

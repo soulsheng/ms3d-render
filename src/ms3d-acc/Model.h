@@ -61,6 +61,9 @@ protected:
 	
 	void setupVertexArray();
 
+	void kernelElement(float* pIn, float* pOut, float* pMat);
+
+
 	protected:
 		//	Meshes used
 		int m_usNumMeshes;
