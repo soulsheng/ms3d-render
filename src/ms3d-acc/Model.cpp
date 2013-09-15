@@ -333,10 +333,11 @@ void Model::modifyVertexByJointInit()
 		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
 
 		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
+		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
 		
 		Mesh* pMesh = m_pMeshes+x;
 		
-		modifyVertexByJointInitKernel(  pVertexArrayRaw, pVertexArrayStatic, pIndexJoint, pMesh ); // 更新pVertexArrayStatic
+		modifyVertexByJointInitKernel(  pVertexArrayRaw, pVertexArrayStatic, pIndexJoint, pWeightJoint, pMesh ); // 更新pVertexArrayStatic
 
 #if !RENDERMODE_MOVING
 
@@ -357,15 +358,16 @@ void Model::modifyVertexByJoint()
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
 
 		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
+		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
 		
 		Mesh* pMesh = m_pMeshes+x;
 		
 #if ENABLE_OPTIMIZE
 
 #if ENABLE_OPTIMIZE_SSE
-		modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pMesh );
+		modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
 #else
-		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pMesh );
+		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
 #endif
 
 #else
@@ -385,7 +387,8 @@ void Model::setupVertexArray()
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
-		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3];
+		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3 * SIZE_PER_BONE];
+		float* pWeightJoint = new float[m_pMeshes[x].m_usNumTris * 3 * SIZE_PER_BONE];
 
 		int nVertexSize = ELEMENT_COUNT_POINT * m_pMeshes[x].m_usNumTris * 3;
 
@@ -397,6 +400,7 @@ void Model::setupVertexArray()
 		m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
 		m_meshVertexData.m_pMesh[x].pVertexArrayDynamic = pVertexArrayDynamic;
 		m_meshVertexData.m_pMesh[x].pIndexJoint = pIndexJoint;
+		m_meshVertexData.m_pMesh[x].pWeightJoint = pWeightJoint;
 		m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
@@ -509,7 +513,7 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndex
 	}//for y
 }
 
-void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic  , int* pIndexJoint, Mesh* pMesh)
+void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic  , int* pIndexJoint, float* pWeightJoint,Mesh* pMesh)
 {
 	vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
@@ -528,7 +532,11 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 			//Get the vertex
 			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
 			
-			pIndexJoint[3*y+z] = pVert->m_cBone;
+			for (int i=0;i<SIZE_PER_BONE;i++)
+			{
+				pIndexJoint[(3*y+z)*SIZE_PER_BONE + i] = pVert->m_cBone;
+				pWeightJoint[(3*y+z)*SIZE_PER_BONE + i] = 1.0f/SIZE_PER_BONE;
+			}
 
 			//If it has no bone, render as is
 			if(pVert->m_cBone == -1)
@@ -579,7 +587,7 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 }
 
 
-void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh)
+void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, float* pWeightJoint, Mesh* pMesh)
 {
 
 
@@ -601,7 +609,22 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 #else
 		float* pIn = pSrcPos+ELEMENT_COUNT_POINT*y;
 		float* pOut = pDestPos+ELEMENT_COUNT_POINT*y;
+		
+#if (SIZE_PER_BONE==1)
 		float* pMat = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
+#else
+		float  pMat[16];
+		memset(pMat, 0, 16*sizeof(float) );
+		for (int i=0;i<SIZE_PER_BONE;i++)
+		{
+			float* pMatOne = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y*SIZE_PER_BONE+i];
+			float weight = pWeightJoint[y*SIZE_PER_BONE+i];
+			for (int j=0;j<16;j++)
+			{
+				pMat[j] += pMatOne[j] * weight;
+			}
+		}
+#endif
 
 		pOut[0] =
 			(pMat[0*4+0] * pIn[0] +
@@ -915,7 +938,7 @@ void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02,
 
 
 
-void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, Mesh* pMesh )
+void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, Mesh* pMesh )
 {
 #if (ELEMENT_COUNT_POINT==4)
 
@@ -928,8 +951,31 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
 
-		__m128 *pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y]);
+#if (SIZE_PER_BONE==1)
+		__m128 *pMatLast = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y]);
+#else
+		__m128 pMatLast[4];
+		
+		__m128 *pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y*SIZE_PER_BONE+0]);
+		float weight = pWeightJoint[y*SIZE_PER_BONE+0];
+		__m128 scale = _mm_load_ps1( &weight );
+		for(int i=0;i<4;i++)
+		{
+			pMatLast[i] = _mm_mul_ps(pMatOne[i], scale);
+		}
 
+		for (int i=1;i<SIZE_PER_BONE;i++)
+		{
+			pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y*SIZE_PER_BONE+i]);
+			weight = pWeightJoint[y*SIZE_PER_BONE+i];
+			scale = _mm_load_ps1( &weight );
+			
+			for (int j=0;j<4;j++)
+			{
+				pMatLast[j] = _mm_add_ps(pMatLast[j] ,_mm_mul_ps(pMatOne[j], scale) );
+			}
+		}
+#endif
 
 		__m128 vI0, vI1, vI2;
 
@@ -937,7 +983,7 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 		vI1 = __MM_SELECT( pSrcPos[y], 1); 
 		vI2 = __MM_SELECT( pSrcPos[y], 2); 
 
-		__m128 vO = __MM_DOT4x3_PS(pMatOne[0], pMatOne[1], pMatOne[2], pMatOne[3], vI0, vI1, vI2);  
+		__m128 vO = __MM_DOT4x3_PS(pMatLast[0], pMatLast[1], pMatLast[2], pMatLast[3], vI0, vI1, vI2);  
 
 		pDestPos[y] = vO;
 	}

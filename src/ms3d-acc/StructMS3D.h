@@ -223,6 +223,12 @@ public:
 			pIndexJoint = NULL;
 		}
 
+		if (pWeightJoint != NULL)
+		{
+			delete pWeightJoint;
+			pWeightJoint = NULL;
+		}
+
 		numOfVertex = 0;
 	}
 
@@ -232,6 +238,7 @@ public:
 	float * pVertexArrayStatic; // ¾²Ì¬
 	float * pVertexArrayDynamic; // ¶¯Ì¬
 	int * pIndexJoint;
+	float * pWeightJoint;
 
 	int numOfVertex;
 };
