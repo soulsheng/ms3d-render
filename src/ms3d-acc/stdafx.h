@@ -71,7 +71,7 @@ using namespace std;
 #define ELEMENT_COUNT_POINT		8
 #define STRIDE_POINT			5
 #else
-#define ELEMENT_COUNT_POINT		3
+#define ELEMENT_COUNT_POINT		4
 #define STRIDE_POINT			0
 #endif
 

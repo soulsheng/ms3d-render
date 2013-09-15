@@ -119,7 +119,7 @@ void Model::draw()
 #if ENABLE_CROSSARRAY
 			glInterleavedArrays(GL_T2F_N3F_V3F, 0, m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
 #else
-			glVertexPointer(3, GL_FLOAT, 12, m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
+			glVertexPointer(3, GL_FLOAT, ELEMENT_COUNT_POINT*sizeof(float), m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
 			glEnableClientState( GL_VERTEX_ARRAY );
 #endif
 
@@ -338,11 +338,7 @@ void Model::modifyVertexByJointInit()
 
 #if !RENDERMODE_MOVING
 
-#if  ENABLE_CROSSARRAY
-		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  (2+3+3) * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
-#else
-		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  3 * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
-#endif
+		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  ELEMENT_COUNT_POINT * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
 
 #endif
 	}
@@ -388,11 +384,9 @@ void Model::setupVertexArray()
 	{
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
 		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3];
-#if  ENABLE_CROSSARRAY
-		int nVertexSize = (2+3+3) * m_pMeshes[x].m_usNumTris * 3;
-#else
-		int nVertexSize = 3 * m_pMeshes[x].m_usNumTris * 3;
-#endif
+
+		int nVertexSize = ELEMENT_COUNT_POINT * m_pMeshes[x].m_usNumTris * 3;
+
 		float* pVertexArrayStatic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
 		float* pVertexArrayDynamic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
 		float* pVertexArrayRaw = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
@@ -566,16 +560,16 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 #if ENABLE_CROSSARRAY
 			if(pVertexArrayStatic)
 			{
-				pVertexArrayStatic[ 8*(3*y+z) +5 ] = pVert->m_vVert[0];
-				pVertexArrayStatic[ 8*(3*y+z) +6 ] = pVert->m_vVert[1];
-				pVertexArrayStatic[ 8*(3*y+z) +7 ] = pVert->m_vVert[2];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z) +5 ] = pVert->m_vVert[0];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z) +6 ] = pVert->m_vVert[1];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z) +7 ] = pVert->m_vVert[2];
 			}
 #else
 			if(pVertexArrayStatic)
 			{
-				pVertexArrayStatic[ 3*(3*y+z) ] = pVert->m_vVert[0];
-				pVertexArrayStatic[ 3*(3*y+z)+1 ] = pVert->m_vVert[1];
-				pVertexArrayStatic[ 3*(3*y+z)+2 ] = pVert->m_vVert[2];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z) ] = pVert->m_vVert[0];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z)+1 ] = pVert->m_vVert[1];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z)+2 ] = pVert->m_vVert[2];
 			}
 #endif
 		}//for z
@@ -925,9 +919,11 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 
 	//float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
 	float *pDestPos = pVertexArrayDynamic + STRIDE_POINT;
-	float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
 
 	//遍历每个顶点
+#if ENABLE_OPENMP
+#pragma omp parallel for
+#endif
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
 
@@ -943,10 +939,12 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 		// Load source position
 		__m128 vI0, vI1, vI2;
 #if 0
+		__m128 *pSrcPos = (__m128*)(pVertexArrayRaw +STRIDE_POINT);
 		vI0 = __MM_SELECT( pSrcPos[y], 0);  //_mm_load_ps1( &pSrcPos->s[0] );
 		vI1 = __MM_SELECT( pSrcPos[y], 1);  // _mm_load_ps1( &pSrcPos->s[1] );
 		vI2 = __MM_SELECT( pSrcPos[y], 2);  //_mm_load_ps1( &pSrcPos->s[2] );
 #else
+		float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
 		vI0 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT );
 		vI1 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT + 1 );
 		vI2 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT + 2 );
