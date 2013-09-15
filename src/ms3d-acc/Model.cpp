@@ -255,20 +255,22 @@ void Model::updateJoints(float fTime)
 
 	for (int i=0;i<m_usNumJoints;i++)
 	{
-#if  !ENABLE_OPTIMIZE_SSE
-		memcpy(m_pJointsMatrix+16*i, m_pJoints[i].m_matFinal.Get(), sizeof(float)*16 );
-#else
-		float* pDstOne = m_pJointsMatrix+16*i;
-		float* pSrcOne = m_pJoints[i].m_matFinal.Get();
+
+#if (ENABLE_OPTIMIZE_SSE)&&(ELEMENT_COUNT_POINT==3)
 
 		for (int j=0;j<4;j++)
 		{
-			for(int k=0;k<4;k++)
+			for (int k=0;k<4;k++)
 			{
-				pDstOne[j*4 + k] = pSrcOne[k*4 + j];
+				float* pDst = m_pJointsMatrix+16*i;
+				float* pSrc = m_pJoints[i].m_matFinal.Get();
+				pDst[j*4+k] = pSrc[k*4+j];
 			}
 		}
+#else
+		memcpy(m_pJointsMatrix+16*i, m_pJoints[i].m_matFinal.Get(), sizeof(float)*16 );
 #endif
+
 	}
 
 	}//i
@@ -915,10 +917,35 @@ void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02,
 
 void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, Mesh* pMesh )
 {
+#if (ELEMENT_COUNT_POINT==4)
+
+	__m128 *pSrcPos = (__m128*)(pVertexArrayRaw +STRIDE_POINT);
+	__m128 *pDestPos = (__m128*)(pVertexArrayDynamic +STRIDE_POINT);
+
+#if ENABLE_OPENMP
+#pragma omp parallel for
+#endif
+	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
+	{
+
+		__m128 *pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y]);
 
 
-	//float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
+		__m128 vI0, vI1, vI2;
+
+		vI0 = __MM_SELECT( pSrcPos[y], 0); 
+		vI1 = __MM_SELECT( pSrcPos[y], 1); 
+		vI2 = __MM_SELECT( pSrcPos[y], 2); 
+
+		__m128 vO = __MM_DOT4x3_PS(pMatOne[0], pMatOne[1], pMatOne[2], pMatOne[3], vI0, vI1, vI2);  
+
+		pDestPos[y] = vO;
+	}
+
+#else
+
 	float *pDestPos = pVertexArrayDynamic + STRIDE_POINT;
+	float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
 
 	//遍历每个顶点
 #if ENABLE_OPENMP
@@ -927,37 +954,26 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
 
-		float* pMatOne = m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y];
+		__m128 *pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y]);
+		__m128 mat4[4];
+		mat4[0] = pMatOne[0];
+		mat4[1] = pMatOne[1];
+		mat4[2] = pMatOne[2];
+		mat4[3] = pMatOne[3];
+		__MM_TRANSPOSE4x4_PS( mat4[2], mat4[3], mat4[0], mat4[1] );
 
-		__m128 m00, m01, m02;
-		collapseOneMatrix( &m00, &m01, &m02, pMatOne );
-
-		// Rearrange to column-major matrix with rows shuffled order to: Z 0 X Y
-		__m128 m03 = _mm_setzero_ps();
-		__MM_TRANSPOSE4x4_PS(m02, m03, m00, m01);
-
-		// Load source position
 		__m128 vI0, vI1, vI2;
-#if 0
-		__m128 *pSrcPos = (__m128*)(pVertexArrayRaw +STRIDE_POINT);
-		vI0 = __MM_SELECT( pSrcPos[y], 0);  //_mm_load_ps1( &pSrcPos->s[0] );
-		vI1 = __MM_SELECT( pSrcPos[y], 1);  // _mm_load_ps1( &pSrcPos->s[1] );
-		vI2 = __MM_SELECT( pSrcPos[y], 2);  //_mm_load_ps1( &pSrcPos->s[2] );
-#else
-		float *pSrcPos = pVertexArrayRaw +STRIDE_POINT;
+
 		vI0 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT );
 		vI1 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT + 1 );
 		vI2 = _mm_load_ps1( pSrcPos + y*ELEMENT_COUNT_POINT + 2 );
 
-#endif
+		__m128 vO = __MM_DOT4x3_PS(mat4[2], mat4[3], mat4[0], mat4[1], vI0, vI1, vI2);  
 
-		// Transform by collapsed matrix
-		__m128 vO = __MM_DOT4x3_PS(m02, m03, m00, m01, vI0, vI1, vI2);   // z 0 x y
-
-		// Store blended position, no aligned requirement
 		_mm_storeh_pi((__m64*)( pDestPos + y*ELEMENT_COUNT_POINT) , vO);
 		_mm_store_ss( pDestPos + y * ELEMENT_COUNT_POINT + 2 , vO);
+
 	}
 
-
+#endif
 }

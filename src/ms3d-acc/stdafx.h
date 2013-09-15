@@ -65,7 +65,7 @@ using namespace std;
 #define ENABLE_CROSSARRAY	0 //交错数组
 
 #define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
-#define ENABLE_OPTIMIZE_SSE	0 //SSE
+#define ENABLE_OPTIMIZE_SSE	1 //SSE
 
 #if ENABLE_CROSSARRAY
 #define ELEMENT_COUNT_POINT		8
