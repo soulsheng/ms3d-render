@@ -103,5 +103,8 @@
     <None Include="math\vectorImplementation.inl">
       <Filter>Math</Filter>
     </None>
+    <None Include="SimpleOptimizations.cl">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

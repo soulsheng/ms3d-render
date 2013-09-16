@@ -191,6 +191,7 @@
     <None Include="math\quaternionImplementation.inl" />
     <None Include="math\vector.inl" />
     <None Include="math\vectorImplementation.inl" />
+    <None Include="SimpleOptimizations.cl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
