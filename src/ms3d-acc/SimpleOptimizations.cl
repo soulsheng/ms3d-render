@@ -50,7 +50,7 @@ updateVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex
 {
 	size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	
-	int offset = pIndex[index]*3;
+	int offset = pIndex[index]*4;
 
 	float4 vIn = pInput[index]; 
 	

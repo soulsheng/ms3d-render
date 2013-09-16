@@ -48,6 +48,7 @@ class Model
 		void reloadTextures();
 
 		bool ExecuteKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
+		void SetupKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
 
 protected:
 
@@ -69,7 +70,6 @@ protected:
 	void kernelElement(float* pIn, float* pOut, float* pMat);
 
 protected:// opencl
-	void SetupKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
 	void SetupWorksize( size_t* globalWorkSize, size_t* localWorkSize, int dim );
 
 protected:
@@ -122,10 +122,10 @@ protected://opencl
 	cl_mem g_pfOCLIndex ;
 	cl_mem g_pfOCLMatrix ;
 
-	cl_context	_context ;
-	cl_device_id _device_ID ;
-	cl_command_queue _cmd_queue ;
-	cl_kernel	_kernel;
+	static cl_context	_context ;
+	static cl_device_id _device_ID ;
+	static cl_command_queue _cmd_queue ;
+	static cl_kernel	_kernel;
 };
 
 #endif // ndef MODEL_H

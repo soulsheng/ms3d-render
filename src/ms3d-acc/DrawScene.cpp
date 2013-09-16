@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "DrawScene.h"
 
-#define FILENAME_MS3D "data/tortoise.ms3d"
 //#define FILENAME_MS3D "data/Dophi.ms3d"
 
 #define KernelFunctionNameString	"updateVectorByMatrix4"
@@ -21,12 +20,12 @@ int DrawScene::DrawGLScene( )
 	// 每个动画包含顶点个数是24K，总顶点个数是1M
 	for(int nIndex = 0; nIndex < COUNT_MODEL; nIndex++ )
 	{
-		m_model->draw();													// Draw The Model
+		oclManager.m_model->draw();													// Draw The Model
 	}
 #else
 	for(int nIndex = 0; nIndex < COUNT_MODEL; nIndex++ )
 	{
-		m_model[nIndex].draw();													// Draw The Model
+		oclManager.m_model[nIndex].draw();													// Draw The Model
 	}
 #endif
 	//long timerEndMiliSecond = clock();
@@ -84,11 +83,7 @@ int DrawScene::InitGL( )
 	cudaGLSetGLDevice( cutGetMaxGflopsDeviceId() );
 #endif
 
-	for (int i=0;i<COUNT_MODEL;i++)
-	{
-		m_model[i].loadModelData(FILENAME_MS3D);
-		m_model[i].reloadTextures();										// Loads Model Textures
-	}
+	
 
 	glEnable(GL_TEXTURE_2D);										// Enable Texture Mapping ( NEW )
 	glShadeModel(GL_SMOOTH);										// Enable Smooth Shading
@@ -125,16 +120,11 @@ DrawScene::DrawScene()
 	_timer.resetTimer(timer1);
 	_timer.startTimer(timer1);
 #endif
-	m_model = new MilkshapeModel[COUNT_MODEL];
 }
 
 DrawScene::~DrawScene()
 {
-	if ( m_model )
-	{
-		delete[] m_model;
-		m_model = NULL;
-	}
+	
 
 	oclManager.Cleanup();
 }

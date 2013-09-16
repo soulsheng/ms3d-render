@@ -78,3 +78,7 @@ using namespace std;
 #define MATRIX_SIZE_LINE		4
 
 #define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)
+
+#define ENABLE_OPENCL_CPU	1	//OpenCL CPU
+
+

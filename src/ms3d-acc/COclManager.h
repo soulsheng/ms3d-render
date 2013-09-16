@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CL\cl.h"
+#include "MilkshapeModel.h"	
 
 class COclManager
 {
@@ -22,4 +23,8 @@ private:
 
 	cl_uint     g_min_align;
 	cl_device_id g_device_ID;
+
+public:
+	MilkshapeModel* m_model;
+
 };

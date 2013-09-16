@@ -23,6 +23,13 @@
 #define  LocalWorkY		8
 
 
+cl_context Model::_context = NULL;
+cl_device_id Model::_device_ID = 0;
+cl_kernel Model::_kernel = NULL;
+
+cl_command_queue Model::_cmd_queue = NULL;
+
+
 Model::Model()
 {
 	m_usNumMeshes = 0;
@@ -355,6 +362,9 @@ void Model::modifyVertexByJoint()
 {
 	
 	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
+#if ENABLE_OPENCL_CPU
+	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
+#else
 	//int x = 2;
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
@@ -378,6 +388,7 @@ void Model::modifyVertexByJoint()
 		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pMesh );
 #endif
 	}
+#endif // ENABLE_OPENCL_CPU
 }
 
 void Model::setupVertexArray()
@@ -1049,11 +1060,12 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	const cl_mem_flags OUTFlags = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE;
 	
 	// allocate buffers
-	g_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris,	pVertexArrayRaw,	NULL);
-	g_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris ,	pVertexArrayDynamic,NULL);
-	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris ,	pIndexJoint,		NULL);   
+	int nElementSize = m_pMeshes[1].m_usNumTris * 3;
+	g_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
+	g_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
+	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize ,	pIndexJoint,		NULL);   
 	
-	g_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,		m_pJointsMatrix,	NULL); 
+	g_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,	m_pJointsMatrix,	NULL); 
 
 
 	//Set kernel arguments
@@ -1092,7 +1104,7 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 {
 	cl_int err = CL_SUCCESS;
 
-	SetupKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
+	//SetupKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
 
 
 	size_t globalWorkSize[2];

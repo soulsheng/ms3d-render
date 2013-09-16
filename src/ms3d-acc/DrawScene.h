@@ -4,7 +4,6 @@
 
 
 
-#include "MilkshapeModel.h"	
 										// Header File For Milkshape File
 #include "timerOMP.h"
 #include "timer.h"
@@ -24,7 +23,6 @@ public:
 
 protected:
 private:
-	MilkshapeModel* m_model;
 	GLfloat		yrot;
 
 	CTimer	_timer;

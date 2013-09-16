@@ -3,9 +3,12 @@
 
 #include "common\utils.h"
 
+#define FILENAME_MS3D "data/tortoise.ms3d"
+
 
 COclManager::COclManager()
 {
+	m_model = new MilkshapeModel[COUNT_MODEL];
 
 }
 
@@ -16,6 +19,13 @@ COclManager::~COclManager()
 
 bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_name)
 {
+	// load data
+	for (int i=0;i<COUNT_MODEL;i++)
+	{
+		m_model[i].loadModelData(FILENAME_MS3D);
+		m_model[i].reloadTextures();										// Loads Model Textures
+	}
+
 	cl_device_id devices[16];
 	size_t cb;
 	cl_uint size_ret = 0;
@@ -112,6 +122,8 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 	g_min_align /= 8; //in bytes
 	printf("Buffer alignment required for zero-copying is %d bytes (CL_DEVICE_MEM_BASE_ADDR_ALIGN)\n\n", g_min_align);
 
+	m_model[0].SetupKernel( g_context, g_device_ID, g_kernel, g_cmd_queue );
+
 	return true; // success...
 }
 
@@ -126,6 +138,12 @@ void COclManager::Cleanup()
 	//    if(g_pfRegularOutput) {_aligned_free( g_pfRegularOutput ); g_pfRegularOutput = NULL;}
 	//if(g_pfOCLOutput) {_aligned_free( g_pfOCLOutput ); g_pfOCLOutput = NULL;}
 	//unInitialize();
+
+	if ( m_model )
+	{
+		delete[] m_model;
+		m_model = NULL;
+	}
 }
 
 void COclManager::initialize()
