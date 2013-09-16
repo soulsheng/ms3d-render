@@ -4,6 +4,9 @@
 #define FILENAME_MS3D "data/tortoise.ms3d"
 //#define FILENAME_MS3D "data/Dophi.ms3d"
 
+#define KernelFunctionNameString	"updateVectorByMatrix4"
+#define KernelFileNameString		"SimpleOptimizations.cl"
+
 int DrawScene::DrawGLScene( )
 {
 
@@ -101,7 +104,7 @@ int DrawScene::InitGL( )
 
 
 	// OpenCL ≥ı ºªØ
-	if( oclManager.Setup_OpenCL("SimpleOptimizations.cl")!=true )
+	if( oclManager.Setup_OpenCL( KernelFileNameString, KernelFunctionNameString )!=true )
 		return -1;
 
 	return TRUE;

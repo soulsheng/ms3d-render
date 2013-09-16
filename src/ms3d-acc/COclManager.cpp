@@ -3,7 +3,6 @@
 
 #include "common\utils.h"
 
-#define KernelFunctionNameString	"updateVectorByMatrix4"
 
 COclManager::COclManager()
 {
@@ -15,7 +14,7 @@ COclManager::~COclManager()
 
 }
 
-bool COclManager::Setup_OpenCL( const char *program_source )
+bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_name)
 {
 	cl_device_id devices[16];
 	size_t cb;
@@ -70,7 +69,7 @@ bool COclManager::Setup_OpenCL( const char *program_source )
 		return false;
 	}
 
-	g_kernel = clCreateKernel(g_program, KernelFunctionNameString, NULL);
+	g_kernel = clCreateKernel(g_program, kernel_name, NULL);
 
 	if (g_kernel == (cl_kernel)0)
 	{
