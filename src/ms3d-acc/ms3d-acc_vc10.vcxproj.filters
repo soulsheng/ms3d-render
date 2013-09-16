@@ -16,6 +16,9 @@
     <Filter Include="Math">
       <UniqueIdentifier>{e559b6b3-e68e-4f36-8639-f0a26b3b93ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{0ad9e146-af85-45f0-b4d5-0937c02d046d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DrawScene.cpp">
@@ -38,6 +41,12 @@
     </ClCompile>
     <ClCompile Include="timerOMP.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="COclManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="common\utils.cpp">
+      <Filter>common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +76,12 @@
     </ClInclude>
     <ClInclude Include="timerOMP.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="COclManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="common\utils.h">
+      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

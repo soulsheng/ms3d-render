@@ -98,6 +98,12 @@ int DrawScene::InitGL( )
 	AllocConsole(); 
 	freopen( "CONOUT$","w",stdout);
 #endif
+
+
+	// OpenCL ≥ı ºªØ
+	if( oclManager.Setup_OpenCL("SimpleOptimizations.cl")!=true )
+		return -1;
+
 	return TRUE;
 }
 
@@ -126,5 +132,7 @@ DrawScene::~DrawScene()
 		delete[] m_model;
 		m_model = NULL;
 	}
+
+	oclManager.Cleanup();
 }
 

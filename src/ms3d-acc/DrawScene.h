@@ -8,6 +8,7 @@
 										// Header File For Milkshape File
 #include "timerOMP.h"
 #include "timer.h"
+#include "COclManager.h"
 
 class DrawScene
 {
@@ -28,4 +29,6 @@ private:
 
 	CTimer	_timer;
 	int timer1;
+
+	COclManager		oclManager;
 };
