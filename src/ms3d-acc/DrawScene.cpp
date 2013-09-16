@@ -32,7 +32,9 @@ int DrawScene::DrawGLScene( )
 
 	//cout << "äÖÈ¾ºÄÊ±Time Elapsed " << timeElapsed << endl;
 	
+#if ENABLE_DRAW
 	glFinish();
+#endif	
 
 #if ENABLE_TIMER
 	_timer.stopTimer(timer1);
