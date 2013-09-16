@@ -16,6 +16,7 @@
 
 #include "StructMS3D.h"
 #include "math/vgkTimer.h"
+#include "CL\cl.h"
 
 class Model
 {
@@ -46,6 +47,8 @@ class Model
 		*/
 		void reloadTextures();
 
+		bool ExecuteKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
+
 protected:
 
 	void updateJoints(float fTime);
@@ -65,8 +68,11 @@ protected:
 
 	void kernelElement(float* pIn, float* pOut, float* pMat);
 
+protected:// opencl
+	void SetupKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
+	void SetupWorksize( size_t* globalWorkSize, size_t* localWorkSize, int dim );
 
-	protected:
+protected:
 		//	Meshes used
 		int m_usNumMeshes;
 		Mesh *m_pMeshes;
@@ -110,6 +116,16 @@ protected:
 	//Draw the mesh?
 	bool m_bDrawMesh;
 
+protected://opencl
+	cl_mem g_pfInputBuffer ;
+	cl_mem g_pfOCLOutputBuffer ;
+	cl_mem g_pfOCLIndex ;
+	cl_mem g_pfOCLMatrix ;
+
+	cl_context	_context ;
+	cl_device_id _device_ID ;
+	cl_command_queue _cmd_queue ;
+	cl_kernel	_kernel;
 };
 
 #endif // ndef MODEL_H

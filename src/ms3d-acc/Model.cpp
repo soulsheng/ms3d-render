@@ -19,6 +19,10 @@
 
 #include <emmintrin.h>		// SSE
 
+#define  LocalWorkX		8
+#define  LocalWorkY		8
+
+
 Model::Model()
 {
 	m_usNumMeshes = 0;
@@ -1022,4 +1026,111 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 	}
 
 #endif
+}
+
+
+
+void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue)
+{
+		int x = 1;
+	
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
+
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
+		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
+
+	_context = pContext;
+	_device_ID = pDevice_ID;
+	_kernel = pKernel;
+	_cmd_queue = pCmdQueue;
+
+	const cl_mem_flags INFlags  = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY; 
+	const cl_mem_flags OUTFlags = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE;
+	
+	// allocate buffers
+	g_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris,	pVertexArrayRaw,	NULL);
+	g_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris ,	pVertexArrayDynamic,NULL);
+	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris ,	pIndexJoint,		NULL);   
+	
+	g_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,		m_pJointsMatrix,	NULL); 
+
+
+	//Set kernel arguments
+	clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &g_pfInputBuffer);
+	clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &g_pfOCLIndex);
+	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &g_pfOCLMatrix);
+	clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &g_pfOCLOutputBuffer);
+}
+
+void Model::SetupWorksize( size_t* globalWorkSize, size_t* localWorkSize, int dim )
+{
+	globalWorkSize[0] = (size_t)sqrtf( ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris );
+	globalWorkSize[1] = globalWorkSize[0];
+
+	globalWorkSize[0]/=4; //since proccesing in quadruples
+
+
+	localWorkSize[0] = LocalWorkX;
+	localWorkSize[1] = LocalWorkX;
+	printf("Original global work size (%lu, %lu)\n", globalWorkSize[0], globalWorkSize[1]);
+	printf("Original local work size (%lu, %lu)\n", localWorkSize[0], localWorkSize[1]);
+
+	size_t  workGroupSizeMaximum;
+	clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
+	printf("Maximum workgroup size for this kernel  %lu\n\n",workGroupSizeMaximum );
+
+	if ( m_pMeshes[1].m_usNumTris > workGroupSizeMaximum )
+	{
+		globalWorkSize[0] = workGroupSizeMaximum;
+		globalWorkSize[1] = m_pMeshes[1].m_usNumTris / workGroupSizeMaximum;
+	}
+	printf("Actual global work size (%lu, %lu)\n", globalWorkSize[0], globalWorkSize[1]);
+}
+
+bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue)
+{
+	cl_int err = CL_SUCCESS;
+
+	SetupKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
+
+
+	size_t globalWorkSize[2];
+	size_t localWorkSize[2];
+	SetupWorksize(globalWorkSize, localWorkSize, 2);
+
+	printf("Executing OpenCL kernel...");
+
+	cl_event g_perf_event = NULL;
+	// execute kernel, pls notice g_bAutoGroupSize
+	err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &g_perf_event);
+	if (err != CL_SUCCESS)
+	{
+		printf("ERROR: Failed to execute kernel...\n");
+		return false;
+	}
+	err = clWaitForEvents(1, &g_perf_event);
+	if (err != CL_SUCCESS)
+	{
+		printf("ERROR: Failed to clWaitForEvents...\n");
+		return false;
+	}
+
+	printf("Done\n");
+
+	float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[1].pVertexArrayDynamic;
+	void* tmp_ptr = NULL;
+	err = clEnqueueReadBuffer(_cmd_queue, g_pfOCLOutputBuffer, CL_TRUE, 0, sizeof(cl_float4) * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris , pVertexArrayDynamic, 0, NULL, NULL);
+
+	if (err != CL_SUCCESS)
+	{
+		printf("ERROR: Failed to clEnqueueReadBuffer...\n");
+		return false;
+	}
+
+	clFinish(_cmd_queue);
+
+	clEnqueueUnmapMemObject(_cmd_queue, g_pfOCLOutputBuffer, tmp_ptr, 0, NULL, NULL);
+
+	return true;
 }
