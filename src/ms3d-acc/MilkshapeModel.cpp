@@ -355,7 +355,11 @@ void MilkshapeModel::modifyVBO()
 		Mesh* pMesh = m_pMeshes+x;
 
 #if ENABLE_OPTIMIZE
-		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+	#if ENABLE_OPTIMIZE_SSE
+			modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+	#else
+			modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+	#endif
 #else
 		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
 #endif
