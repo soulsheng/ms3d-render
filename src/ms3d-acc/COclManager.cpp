@@ -15,6 +15,11 @@ COclManager::COclManager()
 COclManager::~COclManager()
 {
 
+	if ( m_model )
+	{
+		delete[] m_model;
+		m_model = NULL;
+	}
 }
 
 bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_name)
@@ -139,11 +144,6 @@ void COclManager::Cleanup()
 	//if(g_pfOCLOutput) {_aligned_free( g_pfOCLOutput ); g_pfOCLOutput = NULL;}
 	//unInitialize();
 
-	if ( m_model )
-	{
-		delete[] m_model;
-		m_model = NULL;
-	}
 }
 
 void COclManager::initialize()

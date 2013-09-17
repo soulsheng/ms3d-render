@@ -3,7 +3,7 @@
 
 //#define FILENAME_MS3D "data/Dophi.ms3d"
 
-#define KernelFunctionNameString	"updateVectorByMatrix4"
+#define KernelFunctionNameString	"transformVectorByMatrix4"
 #define KernelFileNameString		"SimpleOptimizations.cl"
 
 int DrawScene::DrawGLScene( )
