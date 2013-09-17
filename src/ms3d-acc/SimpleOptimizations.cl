@@ -61,3 +61,26 @@ updateVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex
 		1.0f);
 
 }
+
+__kernel void
+transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex,__constant float4 *pMatrix,__global float4 *pOutput)
+{
+	size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
+	
+	int offset = pIndex[index]*4;
+
+	float4 pIn = pInput[index];
+	float4 px = (float4)(pIn.x, pIn.x, pIn.x, pIn.x);
+	float4 py = (float4)(pIn.y, pIn.y, pIn.y, pIn.y);
+	float4 pz = (float4)(pIn.z, pIn.z, pIn.z, pIn.z);
+
+
+	float4 m0, m1, m2, m3;
+	m0 = pMatrix[offset+0];
+	m1 = pMatrix[offset+1];
+	m2 = pMatrix[offset+2];
+	m3 = pMatrix[offset+3];
+
+	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+
+}

@@ -70,7 +70,7 @@ protected:
 	void kernelElement(float* pIn, float* pOut, float* pMat);
 
 protected:// opencl
-	void SetupWorksize( size_t* globalWorkSize, size_t* localWorkSize, int dim );
+	void SetupWorksize( int dim );
 
 protected:
 		//	Meshes used
@@ -126,6 +126,10 @@ protected://opencl
 	static cl_device_id _device_ID ;
 	static cl_command_queue _cmd_queue ;
 	static cl_kernel	_kernel;
+
+	size_t globalWorkSize[2];
+	size_t localWorkSize[2];
 };
+
 
 #endif // ndef MODEL_H

@@ -951,7 +951,19 @@ void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02,
 		
 	}
 
+__m128 dotMultiplyMatrix43(__m128& m0, __m128& m1, __m128& m2, __m128& m3, __m128& px, __m128& py, __m128& pz)
+{
+	__m128 tmp0, tmp1, tmp2, tmp3, result;
+	tmp0 = _mm_mul_ps(m0, px);
+	tmp1 = _mm_mul_ps(m1, py);
+	tmp2 = _mm_mul_ps(m2, pz);
 
+	result = _mm_add_ps(tmp0, tmp1);
+	result = _mm_add_ps(result, tmp2);
+	result = _mm_add_ps(result, m3);
+
+	return result;
+}
 
 void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, Mesh* pMesh )
 {
@@ -998,7 +1010,11 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 		vI1 = __MM_SELECT( pSrcPos[y], 1); 
 		vI2 = __MM_SELECT( pSrcPos[y], 2); 
 
+#if 1
 		__m128 vO = __MM_DOT4x3_PS(pMatLast[0], pMatLast[1], pMatLast[2], pMatLast[3], vI0, vI1, vI2);  
+#else
+		__m128 vO = dotMultiplyMatrix43(pMatLast[0], pMatLast[1], pMatLast[2], pMatLast[3], vI0, vI1, vI2);  
+#endif
 
 		pDestPos[y] = vO;
 	}
@@ -1060,7 +1076,7 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	const cl_mem_flags OUTFlags = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE;
 	
 	// allocate buffers
-	int nElementSize = m_pMeshes[1].m_usNumTris * 3;
+	int nElementSize = (1<<16);//m_pMeshes[1].m_usNumTris * 3;
 	g_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
 	g_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
 	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize ,	pIndexJoint,		NULL);   
@@ -1073,45 +1089,41 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &g_pfOCLIndex);
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &g_pfOCLMatrix);
 	clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &g_pfOCLOutputBuffer);
+
+	SetupWorksize( 2);
+
 }
 
-void Model::SetupWorksize( size_t* globalWorkSize, size_t* localWorkSize, int dim )
+void Model::SetupWorksize( int dim )
 {
-	globalWorkSize[0] = (size_t)sqrtf( ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris );
+	int nElementSize = m_pMeshes[1].m_usNumTris * 3;
+	globalWorkSize[0] = (size_t)sqrtf( nElementSize );
 	globalWorkSize[1] = globalWorkSize[0];
-
-	globalWorkSize[0]/=4; //since proccesing in quadruples
-
 
 	localWorkSize[0] = LocalWorkX;
 	localWorkSize[1] = LocalWorkX;
-	printf("Original global work size (%lu, %lu)\n", globalWorkSize[0], globalWorkSize[1]);
-	printf("Original local work size (%lu, %lu)\n", localWorkSize[0], localWorkSize[1]);
 
 	size_t  workGroupSizeMaximum;
 	clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
-	printf("Maximum workgroup size for this kernel  %lu\n\n",workGroupSizeMaximum );
 
-	if ( m_pMeshes[1].m_usNumTris > workGroupSizeMaximum )
+	if ( nElementSize > workGroupSizeMaximum )
 	{
 		globalWorkSize[0] = workGroupSizeMaximum;
-		globalWorkSize[1] = m_pMeshes[1].m_usNumTris / workGroupSizeMaximum;
+		globalWorkSize[1] = 64;//nElementSize / workGroupSizeMaximum;
 	}
-	printf("Actual global work size (%lu, %lu)\n", globalWorkSize[0], globalWorkSize[1]);
 }
 
 bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue)
 {
+	// update matrix
 	cl_int err = CL_SUCCESS;
+	err = clEnqueueWriteBuffer(_cmd_queue, g_pfOCLMatrix, CL_TRUE, 0, sizeof(cl_float4) * MATRIX_SIZE_LINE * m_usNumJoints , m_pJointsMatrix, 0, NULL, NULL);
 
-	//SetupKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
-
-
-	size_t globalWorkSize[2];
-	size_t localWorkSize[2];
-	SetupWorksize(globalWorkSize, localWorkSize, 2);
-
-	printf("Executing OpenCL kernel...");
+	if (err != CL_SUCCESS)
+	{
+		printf("ERROR: Failed to clEnqueueReadBuffer...\n");
+		return false;
+	}
 
 	cl_event g_perf_event = NULL;
 	// execute kernel, pls notice g_bAutoGroupSize
@@ -1128,11 +1140,10 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 		return false;
 	}
 
-	printf("Done\n");
-
 	float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[1].pVertexArrayDynamic;
+	int nElementSize = (1<<16);//m_pMeshes[1].m_usNumTris * 3;
 	void* tmp_ptr = NULL;
-	err = clEnqueueReadBuffer(_cmd_queue, g_pfOCLOutputBuffer, CL_TRUE, 0, sizeof(cl_float4) * ELEMENT_COUNT_POINT * m_pMeshes[1].m_usNumTris , pVertexArrayDynamic, 0, NULL, NULL);
+	err = clEnqueueReadBuffer(_cmd_queue, g_pfOCLOutputBuffer, CL_TRUE, 0, sizeof(cl_float4) *	nElementSize , pVertexArrayDynamic, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
 	{

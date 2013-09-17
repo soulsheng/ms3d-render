@@ -64,7 +64,7 @@ using namespace std;
 
 #define ENABLE_CROSSARRAY	0 //交错数组
 
-#define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
+#define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
 #define ENABLE_OPTIMIZE_SSE	1 //SSE
 
 #if ENABLE_CROSSARRAY
@@ -80,5 +80,6 @@ using namespace std;
 #define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)
 
 #define ENABLE_OPENCL_CPU	1	//OpenCL CPU
+#define SIZE_OPENCL_TEST	(1<<16)	// 测试64K顶点, MESH[1]
 
 
