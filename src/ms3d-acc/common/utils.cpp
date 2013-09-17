@@ -101,7 +101,7 @@ cl_platform_id GetIntelOCLPlatform()
             return NULL;
         }
 
-        if (!strcmp(pPlatformName, "Intel(R) OpenCL"))
+        if (!strcmp(pPlatformName, NAME_STRING_PLATFORM))
 			return pPlatforms[ui];
     }
 

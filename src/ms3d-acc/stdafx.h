@@ -82,4 +82,7 @@ using namespace std;
 #define ENABLE_OPENCL_CPU	1	//OpenCL CPU
 #define SIZE_OPENCL_TEST	(1<<16)	// ²âÊÔ64K¶¥µã, MESH[1]
 
+#define NAME_STRING_PLATFORM_2	"Advanced Micro Devices, Inc."
+#define NAME_STRING_PLATFORM	"Intel(R) OpenCL."
+#define NAME_STRING_PLATFORM_1	"AMD Accelerated Parallel Processing"
 
