@@ -108,6 +108,11 @@ Model::~Model()
 		m_pJointsMatrix = NULL;
 	}
 	
+	clReleaseMemObject(g_pfInputBuffer);
+	clReleaseMemObject(g_pfOCLOutputBuffer);
+	clReleaseMemObject(g_pfOCLIndex);
+	clReleaseMemObject(g_pfOCLMatrix);
+	clReleaseMemObject(g_pfOCLWeight);
 }
 
 void Model::draw() 
@@ -954,7 +959,7 @@ void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02,
 
 __m128 dotMultiplyMatrix43(__m128& m0, __m128& m1, __m128& m2, __m128& m3, __m128& px, __m128& py, __m128& pz)
 {
-	__m128 tmp0, tmp1, tmp2, tmp3, result;
+	__m128 tmp0, tmp1, tmp2, result;
 	tmp0 = _mm_mul_ps(m0, px);
 	tmp1 = _mm_mul_ps(m1, py);
 	tmp2 = _mm_mul_ps(m2, pz);
@@ -1080,8 +1085,9 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	int nElementSize = (1<<16);//m_pMeshes[1].m_usNumTris * 3;
 	g_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
 	g_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
-	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize ,	pIndexJoint,		NULL);   
-	
+	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pIndexJoint,		NULL);   
+	g_pfOCLWeight	= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pWeightJoint,		NULL);   
+
 	g_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,	m_pJointsMatrix,	NULL); 
 
 
@@ -1091,6 +1097,7 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &g_pfOCLMatrix);
 	clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &g_pfOCLOutputBuffer);
 	clSetKernelArg(_kernel, 4, sizeof(int), &nElementSize);
+	clSetKernelArg(_kernel, 5, sizeof(cl_mem), (void *) &g_pfOCLWeight);
 
 	SetupWorksize( 2);
 

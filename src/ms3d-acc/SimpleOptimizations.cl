@@ -17,6 +17,7 @@
 // 
 // Intel Corporation is the author of the Materials, and requests that all
 // problem reports or change requests be submitted to it directly
+#define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
 
 __kernel void
 SimpleKernel( const __global float *input, __global float *output)
@@ -63,26 +64,39 @@ updateVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex
 }
 
 __kernel void
-transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex,__constant float4 *pMatrix,__global float4 *pOutput,  int sizeMax)
+transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex,__constant float4 *pMatrix,__global float4 *pOutput,  int sizeMax,  const __global float *pWeight)
 {
 	size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	
 	if( index >= sizeMax )
 		return;
 
-	int offset = pIndex[index]*4;
-
-	float4 pIn = pInput[index];
-	float4 px = (float4)(pIn.x, pIn.x, pIn.x, pIn.x);
-	float4 py = (float4)(pIn.y, pIn.y, pIn.y, pIn.y);
-	float4 pz = (float4)(pIn.z, pIn.z, pIn.z, pIn.z);
-
+	int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
+	float weight = pWeight[index*SIZE_PER_BONE+0] ;
+	float4 weight4 = { weight, weight, weight, weight } ;
 
 	float4 m0, m1, m2, m3;
-	m0 = pMatrix[offset+0];
-	m1 = pMatrix[offset+1];
-	m2 = pMatrix[offset+2];
-	m3 = pMatrix[offset+3];
+	m0 = pMatrix[offset+0] * weight4 ;
+	m1 = pMatrix[offset+1] * weight4 ;
+	m2 = pMatrix[offset+2] * weight4 ;
+	m3 = pMatrix[offset+3] * weight4 ;
+
+	for(int i=1;i<SIZE_PER_BONE; i++)
+	{
+		offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
+		weight = pWeight[index*SIZE_PER_BONE+i] ;
+		weight4 = (float4)( weight, weight, weight, weight ) ;
+
+		m0 += pMatrix[offset+0] * weight4 ;
+		m1 += pMatrix[offset+1] * weight4 ;
+		m2 += pMatrix[offset+2] * weight4 ;
+		m3 += pMatrix[offset+3] * weight4 ;
+	}
+
+	float4 pIn = pInput[index];
+	float4 px = { pIn.x, pIn.x, pIn.x, pIn.x } ;
+	float4 py = { pIn.y, pIn.y, pIn.y, pIn.y } ;
+	float4 pz = { pIn.z, pIn.z, pIn.z, pIn.z } ;
 
 	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
 

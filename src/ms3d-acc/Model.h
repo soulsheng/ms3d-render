@@ -121,6 +121,7 @@ protected://opencl
 	cl_mem g_pfOCLOutputBuffer ;
 	cl_mem g_pfOCLIndex ;
 	cl_mem g_pfOCLMatrix ;
+	cl_mem g_pfOCLWeight ;
 
 	static cl_context	_context ;
 	static cl_device_id _device_ID ;
