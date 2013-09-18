@@ -108,11 +108,15 @@ Model::~Model()
 		m_pJointsMatrix = NULL;
 	}
 	
-	clReleaseMemObject(g_pfInputBuffer);
-	clReleaseMemObject(g_pfOCLOutputBuffer);
-	clReleaseMemObject(g_pfOCLIndex);
-	clReleaseMemObject(g_pfOCLMatrix);
-	clReleaseMemObject(g_pfOCLWeight);
+	for (int i = 0; i< m_oclKernelArg.size(); i++)
+	{
+		clReleaseMemObject( m_oclKernelArg[i].m_pfInputBuffer );
+		clReleaseMemObject( m_oclKernelArg[i].m_pfOCLOutputBuffer );
+		clReleaseMemObject( m_oclKernelArg[i].m_pfOCLIndex );
+		clReleaseMemObject( m_oclKernelArg[i].m_pfOCLWeight );
+	}
+	clReleaseMemObject( m_pfOCLMatrix );
+	
 }
 
 void Model::draw() 
@@ -1065,14 +1069,6 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 
 void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue)
 {
-		int x = 1;
-	
-		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
-		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
-
-		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
-		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
-
 	_context = pContext;
 	_device_ID = pDevice_ID;
 	_kernel = pKernel;
@@ -1081,41 +1077,41 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	const cl_mem_flags INFlags  = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY; 
 	const cl_mem_flags OUTFlags = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE;
 	
-	// allocate buffers
-	int nElementSize = (1<<16);//m_pMeshes[1].m_usNumTris * 3;
-	g_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
-	g_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
-	g_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pIndexJoint,		NULL);   
-	g_pfOCLWeight	= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pWeightJoint,		NULL);   
+	m_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,	m_pJointsMatrix,	NULL); 
 
-	g_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,	m_pJointsMatrix,	NULL); 
-
-
-	//Set kernel arguments
-	clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &g_pfInputBuffer);
-	clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &g_pfOCLIndex);
-	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &g_pfOCLMatrix);
-	clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &g_pfOCLOutputBuffer);
-	clSetKernelArg(_kernel, 4, sizeof(int), &nElementSize);
-	clSetKernelArg(_kernel, 5, sizeof(cl_mem), (void *) &g_pfOCLWeight);
-
-	SetupWorksize( 2);
-
-}
-
-void Model::SetupWorksize( int dim )
-{
-	localWorkSize[0] = LocalWorkX;
-	localWorkSize[1] = LocalWorkX;
-
-	size_t  workGroupSizeMaximum;
-	clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
-
-	int nElementSizePadding = roundToPowerOf2( m_pMeshes[1].m_usNumTris * 3 );
-	if ( nElementSizePadding > workGroupSizeMaximum )
+	for(int i = 0; i < m_usNumMeshes; i++)
 	{
-		globalWorkSize[0] = workGroupSizeMaximum;
-		globalWorkSize[1] = nElementSizePadding / workGroupSizeMaximum;
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[i].pVertexArrayRaw;
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
+
+		int* pIndexJoint = m_meshVertexData.m_pMesh[i].pIndexJoint;
+		float* pWeightJoint = m_meshVertexData.m_pMesh[i].pWeightJoint;
+
+		OCLKernelArguments	kernelArg;
+		// allocate buffers
+		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
+
+		kernelArg.m_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
+		kernelArg.m_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
+		kernelArg.m_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pIndexJoint,		NULL);   
+		kernelArg.m_pfOCLWeight	= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pWeightJoint,		NULL);   
+
+
+		// thread size
+		kernelArg.localWorkSize[0] = LocalWorkX;
+		kernelArg.localWorkSize[1] = LocalWorkX;
+
+		size_t  workGroupSizeMaximum;
+		clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
+
+		int nElementSizePadding = roundToPowerOf2( m_pMeshes[1].m_usNumTris * 3 );
+		if ( nElementSizePadding > workGroupSizeMaximum )
+		{
+			kernelArg.globalWorkSize[0] = workGroupSizeMaximum;
+			kernelArg.globalWorkSize[1] = nElementSizePadding / workGroupSizeMaximum;
+		}
+
+		m_oclKernelArg.push_back( kernelArg );
 	}
 }
 
@@ -1123,7 +1119,7 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 {
 	// update matrix
 	cl_int err = CL_SUCCESS;
-	err = clEnqueueWriteBuffer(_cmd_queue, g_pfOCLMatrix, CL_TRUE, 0, sizeof(cl_float4) * MATRIX_SIZE_LINE * m_usNumJoints , m_pJointsMatrix, 0, NULL, NULL);
+	err = clEnqueueWriteBuffer(_cmd_queue, m_pfOCLMatrix, CL_TRUE, 0, sizeof(cl_float4) * MATRIX_SIZE_LINE * m_usNumJoints , m_pJointsMatrix, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
 	{
@@ -1131,35 +1127,48 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 		return false;
 	}
 
-	cl_event g_perf_event = NULL;
-	// execute kernel, pls notice g_bAutoGroupSize
-	err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, &g_perf_event);
-	if (err != CL_SUCCESS)
+	//Set kernel arguments
+	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &m_pfOCLMatrix);
+	
+	for(int i = 0; i < m_usNumMeshes; i++)
 	{
-		printf("ERROR: Failed to execute kernel...\n");
-		return false;
+		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
+
+		clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfInputBuffer);
+		clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLIndex);
+		clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLOutputBuffer);
+		clSetKernelArg(_kernel, 4, sizeof(int), &nElementSize);
+		clSetKernelArg(_kernel, 5, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLWeight);
+
+		cl_event g_perf_event = NULL;
+		// execute kernel, pls notice g_bAutoGroupSize
+		err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, m_oclKernelArg[i].globalWorkSize, m_oclKernelArg[i].localWorkSize, 0, NULL, &g_perf_event);
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to execute kernel...\n");
+			return false;
+		}
+		err = clWaitForEvents(1, &g_perf_event);
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to clWaitForEvents...\n");
+			return false;
+		}
+
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
+
+		void* tmp_ptr = NULL;
+		err = clEnqueueReadBuffer(_cmd_queue, m_oclKernelArg[i].m_pfOCLOutputBuffer, CL_TRUE, 0, sizeof(cl_float4) *	nElementSize , pVertexArrayDynamic, 0, NULL, NULL);
+
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to clEnqueueReadBuffer...\n");
+			return false;
+		}
+
+		clFinish(_cmd_queue);
+
 	}
-	err = clWaitForEvents(1, &g_perf_event);
-	if (err != CL_SUCCESS)
-	{
-		printf("ERROR: Failed to clWaitForEvents...\n");
-		return false;
-	}
-
-	float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[1].pVertexArrayDynamic;
-	int nElementSize = (1<<16);//m_pMeshes[1].m_usNumTris * 3;
-	void* tmp_ptr = NULL;
-	err = clEnqueueReadBuffer(_cmd_queue, g_pfOCLOutputBuffer, CL_TRUE, 0, sizeof(cl_float4) *	nElementSize , pVertexArrayDynamic, 0, NULL, NULL);
-
-	if (err != CL_SUCCESS)
-	{
-		printf("ERROR: Failed to clEnqueueReadBuffer...\n");
-		return false;
-	}
-
-	clFinish(_cmd_queue);
-
-	clEnqueueUnmapMemObject(_cmd_queue, g_pfOCLOutputBuffer, tmp_ptr, 0, NULL, NULL);
 
 	return true;
 }

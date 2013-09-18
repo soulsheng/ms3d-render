@@ -117,19 +117,25 @@ protected:
 	bool m_bDrawMesh;
 
 protected://opencl
-	cl_mem g_pfInputBuffer ;
-	cl_mem g_pfOCLOutputBuffer ;
-	cl_mem g_pfOCLIndex ;
-	cl_mem g_pfOCLMatrix ;
-	cl_mem g_pfOCLWeight ;
+	struct  OCLKernelArguments
+	{
+		cl_mem m_pfInputBuffer ;
+		cl_mem m_pfOCLOutputBuffer ;
+		cl_mem m_pfOCLIndex ;
+		cl_mem m_pfOCLWeight ;
+		size_t globalWorkSize[2];
+		size_t localWorkSize[2];
+	};
+	
+	std::vector<OCLKernelArguments>	m_oclKernelArg;
+
+	cl_mem m_pfOCLMatrix ;
 
 	static cl_context	_context ;
 	static cl_device_id _device_ID ;
 	static cl_command_queue _cmd_queue ;
 	static cl_kernel	_kernel;
 
-	size_t globalWorkSize[2];
-	size_t localWorkSize[2];
 };
 
 
