@@ -14,6 +14,7 @@
 
 #include "Model.h"
 #include "ms3d-acc.h"
+#include "common/utils.h"
 //using namespace vgMs3d;
 #include <omp.h>			// OpenMP
 
@@ -1089,6 +1090,7 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &g_pfOCLIndex);
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &g_pfOCLMatrix);
 	clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &g_pfOCLOutputBuffer);
+	clSetKernelArg(_kernel, 4, sizeof(int), &nElementSize);
 
 	SetupWorksize( 2);
 
@@ -1096,20 +1098,17 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 
 void Model::SetupWorksize( int dim )
 {
-	int nElementSize = m_pMeshes[1].m_usNumTris * 3;
-	globalWorkSize[0] = (size_t)sqrtf( nElementSize );
-	globalWorkSize[1] = globalWorkSize[0];
-
 	localWorkSize[0] = LocalWorkX;
 	localWorkSize[1] = LocalWorkX;
 
 	size_t  workGroupSizeMaximum;
 	clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
 
-	if ( nElementSize > workGroupSizeMaximum )
+	int nElementSizePadding = roundToPowerOf2( m_pMeshes[1].m_usNumTris * 3 );
+	if ( nElementSizePadding > workGroupSizeMaximum )
 	{
 		globalWorkSize[0] = workGroupSizeMaximum;
-		globalWorkSize[1] = 64;//nElementSize / workGroupSizeMaximum;
+		globalWorkSize[1] = nElementSizePadding / workGroupSizeMaximum;
 	}
 }
 

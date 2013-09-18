@@ -63,10 +63,13 @@ updateVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex
 }
 
 __kernel void
-transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex,__constant float4 *pMatrix,__global float4 *pOutput)
+transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIndex,__constant float4 *pMatrix,__global float4 *pOutput,  int sizeMax)
 {
 	size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	
+	if( index >= sizeMax )
+		return;
+
 	int offset = pIndex[index]*4;
 
 	float4 pIn = pInput[index];

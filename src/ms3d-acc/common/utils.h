@@ -289,3 +289,4 @@ void BuildFailLog( cl_program program, cl_device_id device_id );
 
 bool SaveImageAsBMP ( unsigned int* ptr, int width, int height, const char* fileName);
 
+int roundToPowerOf2(int val);

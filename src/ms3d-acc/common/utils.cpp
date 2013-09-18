@@ -545,4 +545,19 @@ const char* OCL_GetErrorString(cl_int error)
     }
 }
 
+int roundToPowerOf2(int val)
+{
+	int bytes = sizeof(int);
+
+	val--;
+	for(int i = 0; i < bytes; i++)
+	{
+		int tmp = val >> (1<<i);
+		val |=   tmp;
+	}
+	val++;
+
+	return val;
+}
+
 #pragma warning( pop )
