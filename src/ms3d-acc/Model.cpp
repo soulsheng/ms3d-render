@@ -20,9 +20,6 @@
 
 #include <emmintrin.h>		// SSE
 
-#define  LocalWorkX		8
-#define  LocalWorkY		8
-
 
 cl_context Model::_context = NULL;
 cl_device_id Model::_device_ID = 0;
@@ -375,8 +372,8 @@ void Model::modifyVertexByJoint()
 #if ENABLE_OPENCL_CPU
 	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
 #else
-	//int x = 2;
-	for(int x = 0; x < m_usNumMeshes; x++)
+	int x = 1;
+	for(x = 0; x < m_usNumMeshes; x++)
 	{
 		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
@@ -408,6 +405,7 @@ void Model::setupVertexArray()
 	m_meshVertexData.m_pMesh = new Ms3dVertexArrayMesh[m_usNumMeshes];
 	m_meshVertexData.m_numberOfMesh = m_usNumMeshes;
 
+	m_oclKernelArg.assign( m_usNumMeshes,  OCLKernelArguments() );
 
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
@@ -1087,7 +1085,7 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 		int* pIndexJoint = m_meshVertexData.m_pMesh[i].pIndexJoint;
 		float* pWeightJoint = m_meshVertexData.m_pMesh[i].pWeightJoint;
 
-		OCLKernelArguments	kernelArg;
+		OCLKernelArguments	&kernelArg = m_oclKernelArg[i];
 		// allocate buffers
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
 
@@ -1111,7 +1109,6 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 			kernelArg.globalWorkSize[1] = nElementSizePadding / workGroupSizeMaximum;
 		}
 
-		m_oclKernelArg.push_back( kernelArg );
 	}
 }
 
@@ -1130,7 +1127,8 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 	//Set kernel arguments
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &m_pfOCLMatrix);
 	
-	for(int i = 0; i < m_usNumMeshes; i++)
+	int i = 1;
+	for(i = 0; i < m_usNumMeshes; i++)
 	{
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
 
