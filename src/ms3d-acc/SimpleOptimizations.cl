@@ -101,3 +101,29 @@ transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIn
 	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
 
 }
+
+
+__kernel void
+transformVectorByMatrix4One( const __global float4 *pInput, const __global int *pIndex,__constant float4 *pMatrix,__global float4 *pOutput,  int sizeMax,  const __global float *pWeight)
+{
+	size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
+	
+	if( index >= sizeMax )
+		return;
+
+	int offset = pIndex[index]*4 ;
+
+	float4 m0, m1, m2, m3;
+	m0 = pMatrix[offset+0] ;
+	m1 = pMatrix[offset+1] ;
+	m2 = pMatrix[offset+2] ;
+	m3 = pMatrix[offset+3] ;
+
+	float4 pIn = pInput[index];
+	float4 px = { pIn.x, pIn.x, pIn.x, pIn.x } ;
+	float4 py = { pIn.y, pIn.y, pIn.y, pIn.y } ;
+	float4 pz = { pIn.z, pIn.z, pIn.z, pIn.z } ;
+
+	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+
+}

@@ -2,8 +2,12 @@
 #include "DrawScene.h"
 
 //#define FILENAME_MS3D "data/Dophi.ms3d"
-
+#if (SIZE_PER_BONE==1)
+#define KernelFunctionNameString	"transformVectorByMatrix4One"
+#else
 #define KernelFunctionNameString	"transformVectorByMatrix4"
+#endif
+
 #define KernelFileNameString		"SimpleOptimizations.cl"
 
 int DrawScene::DrawGLScene( )
