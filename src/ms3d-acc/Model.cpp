@@ -52,7 +52,7 @@ Model::Model()
 #endif
 
 	m_pIndexArray = NULL;
-	maxMeshVertexNumber = 0;
+	m_meshVertexIndexTotal = 0;
 
 	m_pJointsMatrix = NULL;
 }
@@ -132,7 +132,11 @@ void Model::draw()
 	{
 
 		// Draw by group
+#if ENABLE_MESH_MIX
+		int i=m_usNumMeshes;
+#else
 		for ( int i = 0; i < m_usNumMeshes; i++ )
+#endif
 		{
 #if ENABLE_CROSSARRAY
 			glInterleavedArrays(GL_T2F_N3F_V3F, 0, m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
@@ -141,11 +145,16 @@ void Model::draw()
 			glEnableClientState( GL_VERTEX_ARRAY );
 #endif
 
+#if ENABLE_MESH_MIX
+			int nSizeVertex = m_meshVertexIndexTotal;
+#else
+			int nSizeVertex = m_meshVertexData.m_pMesh[x].numOfVertex;
+#endif
 
 #if RENDERMODE_POINT
-			glDrawArrays(GL_POINTS, 0, m_pMeshes[i].m_usNumTris * 3 );			
+			glDrawArrays(GL_POINTS, 0, nSizeVertex );			
 #else
-			glDrawElements(GL_TRIANGLES, m_meshVertexData.m_pMesh[i].numOfVertex,
+			glDrawElements(GL_TRIANGLES, nSizeVertex,
 				GL_UNSIGNED_INT , m_pIndexArray);
 #endif
 			
@@ -363,6 +372,37 @@ void Model::modifyVertexByJointInit()
 
 #endif
 	}
+
+#if ENABLE_MESH_MIX
+	int x = m_usNumMeshes;
+	float* pVertexArrayStaticMix = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+	float* pVertexArrayDynamicMix = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
+	float* pVertexArrayRawMix = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
+
+	int* pIndexJointMix = m_meshVertexData.m_pMesh[x].pIndexJoint;
+	float* pWeightJointMix = m_meshVertexData.m_pMesh[x].pWeightJoint;
+
+	int offset = 0;
+	for(int x = 0; x < m_usNumMeshes; x++)
+	{
+		float* pVertexArrayStatic = m_meshVertexData.m_pMesh[x].pVertexArrayStatic;
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
+
+		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
+		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
+
+		int nVertexSize = m_pMeshes[x].m_usNumTris * 3;
+		memcpy( pVertexArrayStaticMix + offset*ELEMENT_COUNT_POINT, pVertexArrayStatic,  ELEMENT_COUNT_POINT * nVertexSize * sizeof(float) );
+		memcpy( pVertexArrayDynamicMix + offset*ELEMENT_COUNT_POINT, pVertexArrayDynamic,  ELEMENT_COUNT_POINT * nVertexSize * sizeof(float) );
+		memcpy( pVertexArrayRawMix + offset*ELEMENT_COUNT_POINT, pVertexArrayRaw,  ELEMENT_COUNT_POINT * nVertexSize * sizeof(float) );
+
+		memcpy( pIndexJointMix + offset*SIZE_PER_BONE, pIndexJoint,  SIZE_PER_BONE * nVertexSize * sizeof(int) );
+		memcpy( pWeightJointMix + offset*SIZE_PER_BONE, pWeightJoint,  SIZE_PER_BONE * nVertexSize * sizeof(float) );
+
+		offset += nVertexSize;
+	}
+#endif
 }
 
 void Model::modifyVertexByJoint()
@@ -373,7 +413,13 @@ void Model::modifyVertexByJoint()
 	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
 #else
 	int x = 1;
-	for(x = 0; x < m_usNumMeshes; x++)
+#if !ENABLE_MESH_SINGLE
+	#if ENABLE_MESH_MIX
+		x=m_usNumMeshes;
+	#else
+		for ( x = 0; i < m_usNumMeshes; i++ )
+	#endif
+#endif
 	{
 		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[x].pVertexArrayDynamic;
@@ -381,14 +427,18 @@ void Model::modifyVertexByJoint()
 		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
 		
-		Mesh* pMesh = m_pMeshes+x;
+#if ENABLE_MESH_MIX
+		int nSizeVertex = m_meshVertexIndexTotal;
+#else
+		int nSizeVertex = m_meshVertexData.m_pMesh[x].numOfVertex;
+#endif
 		
 #if ENABLE_OPTIMIZE
 
 #if ENABLE_OPTIMIZE_SSE
-		modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+		modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, nSizeVertex );
 #else
-		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+		modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, nSizeVertex );
 #endif
 
 #else
@@ -402,24 +452,25 @@ void Model::setupVertexArray()
 {
 	// 根据Mesh数生成m_usNumMeshes个VertexArray.
 	// 在m_meshVertexData的析构函数中释放.
-	m_meshVertexData.m_pMesh = new Ms3dVertexArrayMesh[m_usNumMeshes];
+	m_meshVertexData.m_pMesh = new Ms3dVertexArrayMesh[m_usNumMeshes+1];
 	m_meshVertexData.m_numberOfMesh = m_usNumMeshes;
 
-	m_oclKernelArg.assign( m_usNumMeshes,  OCLKernelArguments() );
+	m_oclKernelArg.assign( m_usNumMeshes+1,  OCLKernelArguments() );
 
 	for(int x = 0; x < m_usNumMeshes; x++)
 	{
+		int nVertexSize = m_pMeshes[x].m_usNumTris * 3 ;
 		// 在m_pMesh的析构函数中释放. 如需要增加法线则使用
 		int* pIndexJoint = new int[m_pMeshes[x].m_usNumTris * 3 * SIZE_PER_BONE];
 		float* pWeightJoint = new float[m_pMeshes[x].m_usNumTris * 3 * SIZE_PER_BONE];
 
-		int nVertexSize = ELEMENT_COUNT_POINT * m_pMeshes[x].m_usNumTris * 3;
+		int nVertexSizeFloat = ELEMENT_COUNT_POINT * nVertexSize;
 
-		float* pVertexArrayStatic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
-		float* pVertexArrayDynamic = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
-		float* pVertexArrayRaw = (float*)_aligned_malloc( nVertexSize*sizeof(float), 16 );//new float[];
+		float* pVertexArrayStatic = (float*)_aligned_malloc( nVertexSizeFloat*sizeof(float), 16 );//new float[];
+		float* pVertexArrayDynamic = (float*)_aligned_malloc( nVertexSizeFloat*sizeof(float), 16 );//new float[];
+		float* pVertexArrayRaw = (float*)_aligned_malloc( nVertexSizeFloat*sizeof(float), 16 );//new float[];
 
-		m_meshVertexData.m_pMesh[x].numOfVertex = m_pMeshes[x].m_usNumTris * 3;
+		m_meshVertexData.m_pMesh[x].numOfVertex = nVertexSize;
 		m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
 		m_meshVertexData.m_pMesh[x].pVertexArrayDynamic = pVertexArrayDynamic;
 		m_meshVertexData.m_pMesh[x].pIndexJoint = pIndexJoint;
@@ -427,12 +478,27 @@ void Model::setupVertexArray()
 		m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
-		if (m_meshVertexData.m_pMesh[x].numOfVertex > (int)maxMeshVertexNumber)
-		{
-			maxMeshVertexNumber = m_meshVertexData.m_pMesh[x].numOfVertex;
-		}
+		m_meshVertexIndexTotal += m_meshVertexData.m_pMesh[x].numOfVertex;
+		
 	}
-	
+#if ENABLE_MESH_MIX
+	// mix mesh  m_usNumMeshes
+	int x = m_usNumMeshes;
+	int nVertexSizeFloat = ELEMENT_COUNT_POINT * m_meshVertexIndexTotal;
+
+	float* pVertexArrayStatic = (float*)_aligned_malloc( nVertexSizeFloat*sizeof(float), 16 );//new float[];
+	float* pVertexArrayDynamic = (float*)_aligned_malloc( nVertexSizeFloat*sizeof(float), 16 );//new float[];
+	float* pVertexArrayRaw = (float*)_aligned_malloc( nVertexSizeFloat*sizeof(float), 16 );//new float[];
+	int* pIndexJoint = new int[m_meshVertexIndexTotal * SIZE_PER_BONE];
+	float* pWeightJoint = new float[m_meshVertexIndexTotal * SIZE_PER_BONE];
+
+	m_meshVertexData.m_pMesh[x].numOfVertex = m_meshVertexIndexTotal;
+	m_meshVertexData.m_pMesh[x].pVertexArrayStatic = pVertexArrayStatic;
+	m_meshVertexData.m_pMesh[x].pVertexArrayDynamic = pVertexArrayDynamic;
+	m_meshVertexData.m_pMesh[x].pIndexJoint = pIndexJoint;
+	m_meshVertexData.m_pMesh[x].pWeightJoint = pWeightJoint;
+	m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
+#endif
 	/*vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
 
@@ -471,9 +537,9 @@ void Model::setupVertexArray()
 		}
 	}*/		
 
-	m_pIndexArray = new unsigned int[maxMeshVertexNumber];
+	m_pIndexArray = new unsigned int[m_meshVertexIndexTotal];
 
-	for (unsigned int i=0; i<maxMeshVertexNumber; i++)
+	for (unsigned int i=0; i<m_meshVertexIndexTotal; i++)
 	{
 		m_pIndexArray[i] = i;
 	}
@@ -607,10 +673,11 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 #endif
 		}//for z
 	}//for y
+
 }
 
 
-void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, float* pWeightJoint, Mesh* pMesh)
+void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic , int* pIndexJoint, float* pWeightJoint, int nVertexSize)
 {
 
 
@@ -621,7 +688,7 @@ void Model::modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVert
 #if ENABLE_OPENMP
 #pragma omp parallel for
 #endif
-	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
+	for(int y = 0; y < nVertexSize; y++)
 	{
 #if 0
 		float* pSrcPosOne = pSrcPos+ELEMENT_COUNT_POINT*y;
@@ -973,7 +1040,7 @@ __m128 dotMultiplyMatrix43(__m128& m0, __m128& m1, __m128& m2, __m128& m3, __m12
 	return result;
 }
 
-void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, Mesh* pMesh )
+void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, int nVertexSize )
 {
 #if (ELEMENT_COUNT_POINT==4)
 
@@ -983,7 +1050,7 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 #if ENABLE_OPENMP
 #pragma omp parallel for
 #endif
-	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
+	for(int y = 0; y < nVertexSize; y++)
 	{
 
 #if (SIZE_PER_BONE==1)
@@ -1036,7 +1103,7 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 #if ENABLE_OPENMP
 #pragma omp parallel for
 #endif
-	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
+	for(int y = 0; y < nVertexSize; y++)
 	{
 
 		__m128 *pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y]);
@@ -1077,7 +1144,11 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 	
 	m_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,	m_pJointsMatrix,	NULL); 
 
-	for(int i = 0; i < m_usNumMeshes; i++)
+#if ENABLE_MESH_MIX
+	int i=m_usNumMeshes;
+#else
+	for ( int i = 0; i < m_usNumMeshes; i++ )
+#endif
 	{
 		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[i].pVertexArrayRaw;
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
@@ -1087,8 +1158,11 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 
 		OCLKernelArguments	&kernelArg = m_oclKernelArg[i];
 		// allocate buffers
+#if ENABLE_MESH_MIX
+		int nElementSize = m_meshVertexIndexTotal;
+#else
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
-
+#endif
 		kernelArg.m_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
 		kernelArg.m_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
 		kernelArg.m_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pIndexJoint,		NULL);   
@@ -1102,7 +1176,7 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 		size_t  workGroupSizeMaximum;
 		clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
 
-		int nElementSizePadding = roundToPowerOf2( m_pMeshes[1].m_usNumTris * 3 );
+		int nElementSizePadding = roundToPowerOf2( nElementSize );
 		if ( nElementSizePadding > workGroupSizeMaximum )
 		{
 			kernelArg.globalWorkSize[0] = workGroupSizeMaximum;
@@ -1128,9 +1202,20 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &m_pfOCLMatrix);
 	
 	int i = 1;
-	for(i = 0; i < m_usNumMeshes; i++)
+#if !ENABLE_MESH_SINGLE
+	#if ENABLE_MESH_MIX
+		i=m_usNumMeshes;
+	#else
+		for ( i = 0; i < m_usNumMeshes; i++ )
+	#endif
+#endif
 	{
+
+#if ENABLE_MESH_MIX
+		int nElementSize = m_meshVertexIndexTotal;
+#else
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
+#endif
 
 		clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfInputBuffer);
 		clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLIndex);

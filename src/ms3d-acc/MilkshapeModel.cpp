@@ -271,7 +271,7 @@ void MilkshapeModel::initializeVBO()
 	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
 
 	// initialize buffer object
-	int nSizeFaceIndex = maxMeshVertexNumber * sizeof(GLuint);
+	int nSizeFaceIndex = m_meshVertexIndexTotal * sizeof(GLuint);
 	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, nSizeFaceIndex, m_pIndexArray, GL_STATIC_DRAW_ARB);
 
 }
@@ -341,7 +341,14 @@ void MilkshapeModel::renderVBO()
 void MilkshapeModel::modifyVBO()
 {
 // 遍历每个Mesh，根据Joint更新每个Vertex的坐标
-	for(int x = 0; x < m_usNumMeshes; x++)
+	int x=1;
+#if !ENABLE_MESH_SINGLE
+	#if ENABLE_MESH_MIX
+		x=m_usNumMeshes;
+	#else
+		for ( x = 0; x < m_usNumMeshes; x++ )
+	#endif
+#endif
 	{
 		glBindBuffer( GL_ARRAY_BUFFER, _idGPURenderItemsPerMesh[x] );
 		float* pVertexArrayDynamic = (float*)glMapBuffer( GL_ARRAY_BUFFER, GL_READ_WRITE );
@@ -352,13 +359,18 @@ void MilkshapeModel::modifyVBO()
 
 		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
-		Mesh* pMesh = m_pMeshes+x;
+
+#if ENABLE_MESH_MIX
+		int nSizeVertex = m_meshVertexIndexTotal;
+#else
+		int nSizeVertex = m_meshVertexData.m_pMesh[x].numOfVertex;
+#endif
 
 #if ENABLE_OPTIMIZE
 	#if ENABLE_OPTIMIZE_SSE
-			modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+			modifyVertexByJointKernelOptiSSE(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, nSizeVertex );
 	#else
-			modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );
+			modifyVertexByJointKernelOpti(  pVertexArrayRaw, pVertexArrayDynamic, pIndexJoint, pWeightJoint, nSizeVertex );
 	#endif
 #else
 		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pWeightJoint, pMesh );

@@ -91,3 +91,6 @@ using namespace std;
 #define  LocalWorkY		8
 #define  LocalWorkSizeDef	1//局部线程块采用默认数目
 
+#define ENABLE_MESH_SINGLE	0//单个mesh，独立测试
+
+#define ENABLE_MESH_MIX		1//合并mesh

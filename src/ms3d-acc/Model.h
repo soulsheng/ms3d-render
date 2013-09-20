@@ -59,9 +59,9 @@ protected:
 
 	void modifyVertexByJoint();
 	void modifyVertexByJointKernel( float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh );
-	void modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint,  Mesh* pMesh );
+	void modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, int nVertexSize );
 	
-	void modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint,  Mesh* pMesh );
+	void modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, int nVertexSize );
 
 	void getPlayTime(float fSpeed, float fStartTime, float fEndTime, bool bLoop);
 	
@@ -99,7 +99,7 @@ protected:
 
 		Ms3dIntervelData m_meshVertexData;
 		unsigned int *m_pIndexArray;
-		unsigned int maxMeshVertexNumber;
+		unsigned int m_meshVertexIndexTotal;
 
 protected:
 	bool m_load;

@@ -73,13 +73,12 @@ transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIn
 
 	int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
 	float weight = pWeight[index*SIZE_PER_BONE+0] ;
-	float4 weight4 = { weight, weight, weight, weight } ;
+	float4 weight4 = (float4)( weight ) ;
 
-	float4 m0, m1, m2, m3;
-	m0 = pMatrix[offset+0] * weight4 ;
-	m1 = pMatrix[offset+1] * weight4 ;
-	m2 = pMatrix[offset+2] * weight4 ;
-	m3 = pMatrix[offset+3] * weight4 ;
+	float4 m0 = pMatrix[offset+0] * weight4 ;
+	float4 m1 = pMatrix[offset+1] * weight4 ;
+	float4 m2 = pMatrix[offset+2] * weight4 ;
+	float4 m3 = pMatrix[offset+3] * weight4 ;
 
 	for(int i=1;i<SIZE_PER_BONE; i++)
 	{
@@ -94,9 +93,9 @@ transformVectorByMatrix4( const __global float4 *pInput, const __global int *pIn
 	}
 
 	float4 pIn = pInput[index];
-	float4 px = { pIn.x, pIn.x, pIn.x, pIn.x } ;
-	float4 py = { pIn.y, pIn.y, pIn.y, pIn.y } ;
-	float4 pz = { pIn.z, pIn.z, pIn.z, pIn.z } ;
+	float4 px = (float4)pIn.x ;
+	float4 py = (float4)pIn.y ;
+	float4 pz = (float4)pIn.z ;
 
 	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
 
@@ -111,19 +110,18 @@ transformVectorByMatrix4One( const __global float4 *pInput, const __global int *
 	if( index >= sizeMax )
 		return;
 
+	float4 pIn = pInput[index];
+	float4 px = (float4)pIn.x  ;
+	float4 py = (float4)pIn.y  ;
+	float4 pz = (float4)pIn.z  ;
+
 	int offset = pIndex[index]*4 ;
 
-	float4 m0, m1, m2, m3;
-	m0 = pMatrix[offset+0] ;
-	m1 = pMatrix[offset+1] ;
-	m2 = pMatrix[offset+2] ;
-	m3 = pMatrix[offset+3] ;
+	float4 m0 = pMatrix[offset+0] ;
+	float4 m1 = pMatrix[offset+1] ;
+	float4 m2 = pMatrix[offset+2] ;
+	float4 m3 = pMatrix[offset+3] ;
 
-	float4 pIn = pInput[index];
-	float4 px = { pIn.x, pIn.x, pIn.x, pIn.x } ;
-	float4 py = { pIn.y, pIn.y, pIn.y, pIn.y } ;
-	float4 pz = { pIn.z, pIn.z, pIn.z, pIn.z } ;
-
-	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
 
 }
