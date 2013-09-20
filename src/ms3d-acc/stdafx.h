@@ -89,4 +89,5 @@ using namespace std;
 
 #define  LocalWorkX		8
 #define  LocalWorkY		8
+#define  LocalWorkSizeDef	1//局部线程块采用默认数目
 

@@ -1140,7 +1140,11 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 
 		cl_event g_perf_event = NULL;
 		// execute kernel, pls notice g_bAutoGroupSize
+#if LocalWorkSizeDef
+		err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, m_oclKernelArg[i].globalWorkSize, NULL, 0, NULL, &g_perf_event);
+#else
 		err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, m_oclKernelArg[i].globalWorkSize, m_oclKernelArg[i].localWorkSize, 0, NULL, &g_perf_event);
+#endif
 		if (err != CL_SUCCESS)
 		{
 			printf("ERROR: Failed to execute kernel...\n");
