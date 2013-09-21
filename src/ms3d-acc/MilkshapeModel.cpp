@@ -250,15 +250,21 @@ void MilkshapeModel::initializeVBO()
 {
 	// äÖÈ¾µãµÄvboºÍCUDA id
 
-	_idGPURenderItemsPerMesh = new unsigned int[m_usNumMeshes];
+#if ENABLE_MESH_MIX
+	int nMeshCount = m_usNumMeshes+1;
+#else
+	int nMeshCount = m_usNumMeshes;
+#endif
 
-	glGenBuffersARB(m_usNumMeshes, _idGPURenderItemsPerMesh);
+	_idGPURenderItemsPerMesh = new unsigned int[nMeshCount];
 
-	for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
+	glGenBuffersARB(nMeshCount, _idGPURenderItemsPerMesh);
+
+	for (int i=0; i< nMeshCount; i++)
 	{
 		Ms3dVertexArrayMesh* pMesh = &m_meshVertexData.m_pMesh[i];
 
-		int nSizeBufferVertex = ELEMENT_COUNT_POINT * m_pMeshes[i].m_usNumTris * 3 * sizeof(float);
+		int nSizeBufferVertex = ELEMENT_COUNT_POINT * pMesh->numOfVertex * sizeof(float);
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i]);
 
@@ -299,8 +305,11 @@ void MilkshapeModel::renderVBO()
 		glDisable(GL_BLEND);
 		glDisable(GL_ALPHA_TEST);
 
-
+#if ENABLE_MESH_MIX
+		int i = m_meshVertexData.m_numberOfMesh ;
+#else
 		for (int i=0; i< m_meshVertexData.m_numberOfMesh; i++)
+#endif
 		{
 			glBindBufferARB( GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i] );
 

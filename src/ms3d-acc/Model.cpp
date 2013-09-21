@@ -148,7 +148,7 @@ void Model::draw()
 #if ENABLE_MESH_MIX
 			int nSizeVertex = m_meshVertexIndexTotal;
 #else
-			int nSizeVertex = m_meshVertexData.m_pMesh[x].numOfVertex;
+			int nSizeVertex = m_meshVertexData.m_pMesh[i].numOfVertex;
 #endif
 
 #if RENDERMODE_POINT
@@ -417,7 +417,7 @@ void Model::modifyVertexByJoint()
 	#if ENABLE_MESH_MIX
 		x=m_usNumMeshes;
 	#else
-		for ( x = 0; i < m_usNumMeshes; i++ )
+		for ( x = 0; x < m_usNumMeshes; x++ )
 	#endif
 #endif
 	{
