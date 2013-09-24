@@ -41,7 +41,7 @@ using namespace std;
 #endif
 #endif
 
-#define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
+#define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
 #define RENDERMODE_MOVING	1	//  1 动画
@@ -94,3 +94,5 @@ using namespace std;
 #define ENABLE_MESH_SINGLE	0//单个mesh，独立测试
 
 #define ENABLE_MESH_MIX		1//合并mesh
+
+#define ENABLE_CL_GL_INTER	1//OpenCl OpenGL 互操作

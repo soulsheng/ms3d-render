@@ -41,23 +41,67 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 		return false;
 	}
 
+#if !ENABLE_CL_GL_INTER
 	cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)intel_platform_id, NULL };
 
 	// create the OpenCL context on a CPU/PG 
 	g_context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_CPU, NULL, NULL, NULL);
-	
-	if (g_context == (cl_context)0)
-		return false;
+#else
 
-	// get the list of CPU devices associated with context
-	err = clGetContextInfo(g_context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
-	clGetContextInfo(g_context, CL_CONTEXT_DEVICES, cb, devices, NULL);
-	g_cmd_queue = clCreateCommandQueue(g_context, devices[0], 0, NULL);
-	if (g_cmd_queue == (cl_command_queue)0)
-	{
-		Cleanup();
-		return false;
-	}
+	cl_context_properties properties[] = {
+		CL_GL_CONTEXT_KHR, (cl_context_properties) wglGetCurrentContext(), //获得OpenGL上下文
+		CL_WGL_HDC_KHR, (cl_context_properties) wglGetCurrentDC(), //获得OpenGl设备信息
+		CL_CONTEXT_PLATFORM, (cl_context_properties) intel_platform_id,  //获得平台信息
+		0};
+
+		if (!clGetGLContextInfoKHR) 
+		{
+			clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn) clGetExtensionFunctionAddressForPlatform(intel_platform_id, "clGetGLContextInfoKHR");
+			if (!clGetGLContextInfoKHR) 
+			{
+				std::cout << "Failed to query proc address for clGetGLContextInfoKHR";
+				return false;
+			}
+		}
+
+		size_t deviceSize = 0;
+		cl_int status = clGetGLContextInfoKHR( properties, 
+			CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR,
+			0, 
+			NULL, 
+			&deviceSize);
+
+		if (CL_SUCCESS != status || 0 == deviceSize )
+			deviceSize=0;
+
+		status = clGetGLContextInfoKHR( properties, 
+			CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR,
+			sizeof(cl_device_id), 
+			&g_device_ID, 
+			NULL);
+
+		//利用刚刚创建的属性创建上下文
+		g_context = clCreateContext(properties, 1, &g_device_ID, NULL, NULL, &err);
+#endif
+
+		if (g_context == (cl_context)0 )
+			return false;
+
+		// get the list of CPU devices associated with context
+		err = clGetContextInfo(g_context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
+
+
+#if !ENABLE_CL_GL_INTER
+		clGetContextInfo(g_context, CL_CONTEXT_DEVICES, cb, devices, NULL);
+		g_device_ID = devices[0];
+#endif
+
+		g_cmd_queue = clCreateCommandQueue(g_context, g_device_ID, 0, NULL);
+		if (g_cmd_queue == (cl_command_queue)0)
+		{
+			Cleanup();
+			return false;
+		}
 
 	char *sources = ReadSources(program_source);	//read program .cl source file
 	g_program = clCreateProgramWithSource(g_context, 1, (const char**)&sources, NULL, NULL);
@@ -91,7 +135,7 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 	free(sources);
 
 	// use first device ID
-	g_device_ID = devices[0];
+	//g_device_ID = devices[0];
 	err = clGetDeviceInfo(g_device_ID, CL_DEVICE_NAME, 128, device_name, NULL);
 	if (err!=CL_SUCCESS)
 	{
@@ -127,7 +171,9 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 	{
 		m_model[i].loadModelData(FILENAME_MS3D);
 		m_model[i].reloadTextures();										// Loads Model Textures
+#if ENABLE_OPENCL_CPU
 		m_model[i].SetupKernel( g_context, g_device_ID, g_kernel, g_cmd_queue );
+#endif
 	}
 
 

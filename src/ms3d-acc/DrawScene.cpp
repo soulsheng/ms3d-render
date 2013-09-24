@@ -101,10 +101,11 @@ int DrawScene::InitGL( )
 	freopen( "CONOUT$","w",stdout);
 #endif
 
-
+#if ENABLE_OPENCL_CPU
 	// OpenCL ≥ı ºªØ
 	if( oclManager.Setup_OpenCL( KernelFileNameString, KernelFunctionNameString )!=true )
 		return -1;
+#endif
 
 	return TRUE;
 }

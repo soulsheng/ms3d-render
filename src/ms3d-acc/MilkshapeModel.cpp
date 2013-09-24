@@ -13,6 +13,8 @@
 
 #include "stdafx.h"
 #include "MilkshapeModel.h"
+#include "common/utils.h"
+#include <CL/cl_gl.h>
 
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -349,6 +351,9 @@ void MilkshapeModel::renderVBO()
 
 void MilkshapeModel::modifyVBO()
 {
+#if ENABLE_OPENCL_CPU
+	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
+#else
 // 遍历每个Mesh，根据Joint更新每个Vertex的坐标
 	int x=1;
 #if !ENABLE_MESH_SINGLE
@@ -391,6 +396,7 @@ void MilkshapeModel::modifyVBO()
 		glBindBuffer( GL_ARRAY_BUFFER, NULL );
 	}
 
+#endif
 
 }
 
@@ -447,6 +453,159 @@ void MilkshapeModel::PreSetup()
 		m_pJoints[x].m_matFinal = m_pJoints[x].m_matAbs;
 	}
 }
+
+
+bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue )
+{
+#if !RENDERMODE_VBO
+	return Model::ExecuteKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
+#endif
+
+	// update matrix
+	cl_int err = CL_SUCCESS;
+	err = clEnqueueWriteBuffer(_cmd_queue, m_pfOCLMatrix, CL_TRUE, 0, sizeof(cl_float4) * MATRIX_SIZE_LINE * m_usNumJoints , m_pJointsMatrix, 0, NULL, NULL);
+
+	if (err != CL_SUCCESS)
+	{
+		printf("ERROR: Failed to clEnqueueReadBuffer...\n");
+		return false;
+	}
+
+	//Set kernel arguments
+	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &m_pfOCLMatrix);
+
+	int i = 1;
+#if !ENABLE_MESH_SINGLE
+#if ENABLE_MESH_MIX
+	i=m_usNumMeshes;
+#else
+	for ( i = 0; i < m_usNumMeshes; i++ )
+#endif
+#endif
+	{
+
+#if ENABLE_MESH_MIX
+		int nElementSize = m_meshVertexIndexTotal;
+#else
+		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
+#endif
+
+#if  ENABLE_CL_GL_INTER
+		clEnqueueAcquireGLObjects(_cmd_queue, 1, &m_oclKernelArg[i].m_pfOCLOutputBuffer, 0, 0, NULL);
+#endif
+
+		clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfInputBuffer);
+		clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLIndex);
+		clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLOutputBuffer);
+		clSetKernelArg(_kernel, 4, sizeof(int), &nElementSize);
+		clSetKernelArg(_kernel, 5, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLWeight);
+
+		cl_event g_perf_event = NULL;
+		// execute kernel, pls notice g_bAutoGroupSize
+#if LocalWorkSizeDef
+		err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, m_oclKernelArg[i].globalWorkSize, NULL, 0, NULL, &g_perf_event);
+#else
+		err= clEnqueueNDRangeKernel(_cmd_queue, _kernel, 2, NULL, m_oclKernelArg[i].globalWorkSize, m_oclKernelArg[i].localWorkSize, 0, NULL, &g_perf_event);
+#endif
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to execute kernel...\n");
+			return false;
+		}
+		err = clWaitForEvents(1, &g_perf_event);
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to clWaitForEvents...\n");
+			return false;
+		}
+#if  !ENABLE_CL_GL_INTER
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
+
+		void* tmp_ptr = NULL;
+		err = clEnqueueReadBuffer(_cmd_queue, m_oclKernelArg[i].m_pfOCLOutputBuffer, CL_TRUE, 0, sizeof(cl_float4) *	nElementSize , pVertexArrayDynamic, 0, NULL, NULL);
+
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to clEnqueueReadBuffer...\n");
+			return false;
+		}
+#else
+		clEnqueueReleaseGLObjects(_cmd_queue, 1, &m_oclKernelArg[i].m_pfOCLOutputBuffer, 0, 0, 0);
+#endif
+		clFinish(_cmd_queue);
+
+	}
+
+	return true;
+}
+
+void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue )
+{
+#if !RENDERMODE_VBO
+	Model::SetupKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
+	return;
+#endif
+
+	_context = pContext;
+	_device_ID = pDevice_ID;
+	_kernel = pKernel;
+	_cmd_queue = pCmdQueue;
+
+	const cl_mem_flags INFlags  = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY; 
+	const cl_mem_flags OUTFlags = CL_MEM_COPY_HOST_PTR | CL_MEM_READ_WRITE;
+
+	m_pfOCLMatrix		= clCreateBuffer(_context, INFlags, sizeof(cl_float4) * MATRIX_SIZE_LINE	* m_usNumJoints ,	m_pJointsMatrix,	NULL); 
+
+#if ENABLE_MESH_MIX
+	int i=m_usNumMeshes;
+#else
+	for ( int i = 0; i < m_usNumMeshes; i++ )
+#endif
+	{
+		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[i].pVertexArrayRaw;
+		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
+
+		int* pIndexJoint = m_meshVertexData.m_pMesh[i].pIndexJoint;
+		float* pWeightJoint = m_meshVertexData.m_pMesh[i].pWeightJoint;
+
+		OCLKernelArguments	&kernelArg = m_oclKernelArg[i];
+		// allocate buffers
+#if ENABLE_MESH_MIX
+		int nElementSize = m_meshVertexIndexTotal;
+#else
+		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
+#endif
+		kernelArg.m_pfInputBuffer		= clCreateBuffer(_context, INFlags,	sizeof(cl_float4) *	nElementSize,	pVertexArrayRaw,	NULL);
+		//kernelArg.m_pfOCLOutputBuffer = clCreateBuffer(_context, OUTFlags,sizeof(cl_float4) *	nElementSize,	pVertexArrayDynamic,NULL);
+		kernelArg.m_pfOCLIndex		= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pIndexJoint,		NULL);   
+		kernelArg.m_pfOCLWeight	= clCreateBuffer(_context, INFlags, sizeof(cl_int)	  *	nElementSize * SIZE_PER_BONE,	pWeightJoint,		NULL);   
+
+
+		// thread size
+		kernelArg.localWorkSize[0] = LocalWorkX;
+		kernelArg.localWorkSize[1] = LocalWorkX;
+
+		size_t  workGroupSizeMaximum;
+		clGetKernelWorkGroupInfo(_kernel, _device_ID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), (void *)&workGroupSizeMaximum, NULL);
+
+		int nElementSizePadding = roundToPowerOf2( nElementSize );
+		if ( nElementSizePadding > workGroupSizeMaximum )
+		{
+			kernelArg.globalWorkSize[0] = workGroupSizeMaximum;
+			kernelArg.globalWorkSize[1] = nElementSizePadding / workGroupSizeMaximum;
+		}
+
+		cl_int errcode_ret;
+		kernelArg.m_pfOCLOutputBuffer = clCreateFromGLBuffer(_context, CL_MEM_WRITE_ONLY, _idGPURenderItemsPerMesh[i], &errcode_ret);
+
+		if ( CL_SUCCESS != errcode_ret )
+		{
+			//continue;
+		}
+	}
+
+}
+
 
 
 
