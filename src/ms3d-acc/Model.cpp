@@ -371,7 +371,7 @@ void Model::modifyVertexByJoint()
 #endif
 
 #else
-		modifyVertexByJointKernel(  pVertexArrayDynamic, pIndexJoint, pMesh );
+		modifyVertexByJointKernelSimple(  pVertexArrayDynamic, pIndexJoint, pMesh );
 #endif
 	}
 }
@@ -509,6 +509,34 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndex
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
 			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
+		}//for z
+	}//for y
+}
+
+void Model::modifyVertexByJointKernelSimple( float* pVertexArrayDynamic  , int* pIndexJoint, Mesh* pMesh)
+{
+	//遍历Mesh的每个三角面
+	for(int y = 0; y < pMesh->m_usNumTris; y++)
+	{
+		//Set triangle pointer to triangle #1
+
+		Triangle * pTri = &m_pTriangles[pMesh->m_uspIndices[y]];
+		// 遍历三角面的三个顶点 
+		for(int z = 0; z < 3; z++)
+		{
+			//Get the vertex
+			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+
+			MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
+			
+				// Transform the vertex
+			vgMs3d::CVector3 vecVertex = pVert->m_vVert;
+				// translate as well as rotate
+			vecVertex.Transform4(pJoint->m_matFinal);
+
+			pVertexArrayDynamic[y*9+z*3+0] = vecVertex[0] * SCALE_SIZE;
+			pVertexArrayDynamic[y*9+z*3+1] = vecVertex[1] * SCALE_SIZE;
+			pVertexArrayDynamic[y*9+z*3+2] = vecVertex[2] * SCALE_SIZE;
 		}//for z
 	}//for y
 }

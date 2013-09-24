@@ -1,7 +1,14 @@
 #include "stdafx.h"
 #include "DrawScene.h"
 
-#define FILENAME_MS3D "data/tortoise.ms3d"
+#define FILENAME_MS3D_1 "data/fireman.ms3d"
+#define FILENAME_MS3D_2 "data/firemanjdf.ms3d"
+#define FILENAME_MS3D_3 "data/firemanjyf.ms3d"
+#define FILENAME_MS3D_4 "data/firemanzdzhf.ms3d"
+#define FILENAME_MS3D_5 "data/xiaofangfu.ms3d"
+#define FILENAME_MS3D_6 "data/tortoise.ms3d"
+#define FILENAME_MS3D	FILENAME_MS3D_6
+
 //#define FILENAME_MS3D "data/Dophi.ms3d"
 
 int DrawScene::DrawGLScene( )

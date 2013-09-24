@@ -78,3 +78,5 @@ using namespace std;
 #define MATRIX_SIZE_LINE		4
 
 #define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)
+
+#define SCALE_SIZE		1 // Ä£ÐÍËõ·Å

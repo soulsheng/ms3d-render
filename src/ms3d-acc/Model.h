@@ -58,6 +58,8 @@ protected:
 	void modifyVertexByJointKernelOpti( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint,  Mesh* pMesh );
 	
 	void modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint,  Mesh* pMesh );
+	
+	void modifyVertexByJointKernelSimple( float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh );
 
 	void getPlayTime(float fSpeed, float fStartTime, float fEndTime, bool bLoop);
 	
