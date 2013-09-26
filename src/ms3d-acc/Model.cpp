@@ -526,17 +526,22 @@ void Model::modifyVertexByJointKernelSimple( float* pVertexArrayDynamic  , int* 
 		{
 			//Get the vertex
 			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
+			vgMs3d::CVector3 vecVertexIn, vecVertexOut;
+			vgMs3d::CVector3 vecVertexFinal;
+			vecVertexIn = pVert->m_vVert;
 
+			for(int i=0;i<SIZE_PER_BONE;i++) {
 			MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
 			
 				// Transform the vertex
-			vgMs3d::CVector3 vecVertex = pVert->m_vVert;
 				// translate as well as rotate
-			vecVertex.Transform4(pJoint->m_matFinal);
-
-			pVertexArrayDynamic[y*9+z*3+0] = vecVertex[0] * SCALE_SIZE;
-			pVertexArrayDynamic[y*9+z*3+1] = vecVertex[1] * SCALE_SIZE;
-			pVertexArrayDynamic[y*9+z*3+2] = vecVertex[2] * SCALE_SIZE;
+			//vecVertex.Transform4(pJoint->m_matFinal);
+			kernelElement(vecVertexIn.Get(), vecVertexOut.Get(), pJoint->m_matFinal.Get() );
+			vecVertexFinal += vecVertexOut/SIZE_PER_BONE;
+			}
+			pVertexArrayDynamic[y*9+z*3+0] = vecVertexFinal[0] * SCALE_SIZE;
+			pVertexArrayDynamic[y*9+z*3+1] = vecVertexFinal[1] * SCALE_SIZE;
+			pVertexArrayDynamic[y*9+z*3+2] = vecVertexFinal[2] * SCALE_SIZE;
 		}//for z
 	}//for y
 }
