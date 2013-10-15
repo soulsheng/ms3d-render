@@ -121,6 +121,13 @@ void Model::draw()
 #else
 			glVertexPointer(3, GL_FLOAT, ELEMENT_COUNT_POINT*sizeof(float), m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
 			glEnableClientState( GL_VERTEX_ARRAY );
+
+			glNormalPointer(GL_FLOAT, 3*sizeof(float), m_meshVertexData.m_pMesh[i].pNormal);
+			glEnableClientState( GL_NORMAL_ARRAY );
+			
+			glTexCoordPointer(2, GL_FLOAT, 2*sizeof(float), m_meshVertexData.m_pMesh[i].pTexcoord);
+			glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+
 #endif
 
 
@@ -133,6 +140,8 @@ void Model::draw()
 			
 #if !ENABLE_CROSSARRAY
 			glDisableClientState( GL_VERTEX_ARRAY );
+			glDisableClientState( GL_NORMAL_ARRAY );
+			glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 #endif
 
 		}
@@ -404,6 +413,10 @@ void Model::setupVertexArray()
 		m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
+		m_meshVertexData.m_pMesh[x].pTexcoord = new float[2 * m_pMeshes[x].m_usNumTris * 3];
+		m_meshVertexData.m_pMesh[x].pNormal = new float[3 * m_pMeshes[x].m_usNumTris * 3];
+
+
 		if (m_meshVertexData.m_pMesh[x].numOfVertex > (int)maxMeshVertexNumber)
 		{
 			maxMeshVertexNumber = m_meshVertexData.m_pMesh[x].numOfVertex;
@@ -476,7 +489,7 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndex
 			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
 
 			//If it has no bone, render as is
-			if(pVert->m_cBone == -1)
+			if(pVert->m_cBone[0] == -1)
 			{
 				//Send all 3 components without modification
 				vecNormal = pTri->m_vNormals[z];
@@ -485,7 +498,7 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndex
 			//Otherwise, transform the vertices and normals before displaying them
 			else
 			{
-				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
+				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone[0]];
 				// Transform the normals
 				// vecNormal = pTri->m_vNormals[z];
 				// Only rotate it, no translation
@@ -524,24 +537,24 @@ void Model::modifyVertexByJointKernelSimple( float* pVertexArrayDynamic  , int* 
 		// 遍历三角面的三个顶点 
 		for(int z = 0; z < 3; z++)
 		{
-			//Get the vertex
+			// 三角面片的某个顶点，获取顶点对象，包含坐标以及骨骼索引权重
 			Vertex * pVert = &m_pVertices[pTri->m_usVertIndices[z]];
-			vgMs3d::CVector3 vecVertexIn, vecVertexOut;
-			vgMs3d::CVector3 vecVertexFinal;
-			vecVertexIn = pVert->m_vVert;
 
+			 // 关联的每个骨骼，变换矩阵按权重累加
+			vgMs3d::CMatrix4X4 matFinal;
 			for(int i=0;i<SIZE_PER_BONE;i++) {
-			MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
-			
-				// Transform the vertex
-				// translate as well as rotate
-			//vecVertex.Transform4(pJoint->m_matFinal);
-			kernelElement(vecVertexIn.Get(), vecVertexOut.Get(), pJoint->m_matFinal.Get() );
-			vecVertexFinal += vecVertexOut/SIZE_PER_BONE;
+				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone[i]];
+				matFinal += pJoint->m_matFinal * pVert->m_fWeight[i];
 			}
-			pVertexArrayDynamic[y*9+z*3+0] = vecVertexFinal[0] * SCALE_SIZE;
-			pVertexArrayDynamic[y*9+z*3+1] = vecVertexFinal[1] * SCALE_SIZE;
-			pVertexArrayDynamic[y*9+z*3+2] = vecVertexFinal[2] * SCALE_SIZE;
+
+			// 三维坐标矩阵变换
+			vgMs3d::CVector3 vecVertexOut(pVert->m_vVert);
+			vecVertexOut.Transform4( matFinal );
+
+			// 搜集坐标变换后产生的新坐标
+			pVertexArrayDynamic[y*ELEMENT_COUNT_POINT*3+z*ELEMENT_COUNT_POINT+STRIDE_POINT+0] = vecVertexOut[0] ;
+			pVertexArrayDynamic[y*ELEMENT_COUNT_POINT*3+z*ELEMENT_COUNT_POINT+STRIDE_POINT+1] = vecVertexOut[1] ;
+			pVertexArrayDynamic[y*ELEMENT_COUNT_POINT*3+z*ELEMENT_COUNT_POINT+STRIDE_POINT+2] = vecVertexOut[2] ;
 		}//for z
 	}//for y
 }
@@ -567,12 +580,12 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 			
 			for (int i=0;i<SIZE_PER_BONE;i++)
 			{
-				pIndexJoint[(3*y+z)*SIZE_PER_BONE + i] = pVert->m_cBone;
-				pWeightJoint[(3*y+z)*SIZE_PER_BONE + i] = 1.0f/SIZE_PER_BONE;
+				pIndexJoint[(3*y+z)*SIZE_PER_BONE + i] = pVert->m_cBone[i];
+				pWeightJoint[(3*y+z)*SIZE_PER_BONE + i] = pVert->m_fWeight[i];
 			}
 
 			//If it has no bone, render as is
-			if(pVert->m_cBone == -1)
+			if(pVert->m_cBone[0] == -1)
 			{
 				//Send all 3 components without modification
 				vecNormal = pTri->m_vNormals[z];
@@ -581,7 +594,7 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 			//Otherwise, transform the vertices and normals before displaying them
 			else
 			{
-				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone];
+				MS3DJoint * pJoint = &m_pJoints[pVert->m_cBone[0]];
 				
 				vecVertex = pVert->m_vVert;
 				// translate as well as rotate

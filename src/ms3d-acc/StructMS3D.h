@@ -179,7 +179,8 @@ struct Triangle
 //	Vertex structure
 struct Vertex
 {
-	char m_cBone;	// for skeletal animation
+	char m_cBone[SIZE_PER_BONE];	// for skeletal animation
+	float m_fWeight[SIZE_PER_BONE];	// for skeletal animation
 	vgMs3d::CVector3 m_vVert;
 	float m_texcoord[2];
 };
@@ -228,7 +229,17 @@ public:
 			delete pWeightJoint;
 			pWeightJoint = NULL;
 		}
+		if (pTexcoord != NULL)
+		{
+			delete pTexcoord;
+			pTexcoord = NULL;
+		}
 
+		if (pNormal != NULL)
+		{
+			delete pNormal;
+			pNormal = NULL;
+		}
 		numOfVertex = 0;
 	}
 
@@ -239,6 +250,9 @@ public:
 	float * pVertexArrayDynamic; // 动态
 	int * pIndexJoint;
 	float * pWeightJoint;
+
+	float * pTexcoord; // 纹理坐标
+	float * pNormal; // 顶点法线
 
 	int numOfVertex;
 };

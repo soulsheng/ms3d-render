@@ -76,7 +76,12 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	for ( i = 0; i < nVertices; i++ )
 	{
 		MS3DVertex *pVertex = ( MS3DVertex* )pPtr;
-		m_pVertices[i].m_cBone = pVertex->m_cBone;
+		for (int j=0;j<SIZE_PER_BONE;j++)
+		{
+			m_pVertices[i].m_cBone[j] = pVertex->m_cBone;
+			m_pVertices[i].m_fWeight[j] = 1.0f/SIZE_PER_BONE;
+		}
+
 		memcpy( m_pVertices[i].m_vVert.Get(), pVertex->m_vertex, sizeof( float )*3 );
 		pPtr += sizeof( MS3DVertex );
 	}
@@ -385,10 +390,10 @@ void MilkshapeModel::Setup()
 	for(x = 0; x < m_usNumVerts; x++)
 	{
 		//If there is no bone..
-		if(m_pVertices[x].m_cBone== -1)
+		if(m_pVertices[x].m_cBone[0]== -1)
 			continue;
 
-		vgMs3d::CMatrix4X4 * mat = &m_pJoints[m_pVertices[x].m_cBone].m_matFinal;
+		vgMs3d::CMatrix4X4 * mat = &m_pJoints[m_pVertices[x].m_cBone[0]].m_matFinal;
 
 
 		mat->InverseTranslateVec(m_pVertices[x].m_vVert.Get());
