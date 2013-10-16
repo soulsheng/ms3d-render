@@ -529,6 +529,9 @@ void Model::modifyVertexByJointKernel( float* pVertexArrayDynamic  , int* pIndex
 void Model::modifyVertexByJointKernelSimple( float* pVertexArrayDynamic  , int* pIndexJoint, Mesh* pMesh)
 {
 	//遍历Mesh的每个三角面
+#if ENABLE_OPENMP
+#pragma omp parallel for
+#endif
 	for(int y = 0; y < pMesh->m_usNumTris; y++)
 	{
 		//Set triangle pointer to triangle #1
