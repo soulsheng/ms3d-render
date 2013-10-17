@@ -1011,43 +1011,51 @@ __m128 dotMultiplyMatrix43( __m128* pMatLast, __m128& pIn )
 void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, Mesh* pMesh )
 {
 #if (ELEMENT_COUNT_POINT==4)
-
+	// 顶点读写按照SSE规定，顶点4个float一次性读写
 	__m128 *pSrcPos = (__m128*)(pVertexArrayRaw +STRIDE_POINT);
 	__m128 *pDestPos = (__m128*)(pVertexArrayDynamic +STRIDE_POINT);
 
 #if ENABLE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for// 调用OpenMP多线程
 #endif
 	for(int y = 0; y < pMesh->m_usNumTris*3; y++)
 	{
 
-#if (SIZE_PER_BONE==1)
+#if (SIZE_PER_BONE==1)// 单骨骼特别处理，不需要矩阵按权重相加
 		__m128 *pMatLast = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y]);
-#else
+#else// 多骨骼特别处理，需要矩阵按权重相加
 		__m128 pMatLast[4];
 		
+		// 获取第1个矩阵
 		__m128 *pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y*SIZE_PER_BONE+0]);
+		
+		// 获取第1个矩阵的权重
 		float weight = pWeightJoint[y*SIZE_PER_BONE+0];
 		__m128 scale = _mm_load_ps1( &weight );
+		
+		// 第1个矩阵乘于权重
 		for(int i=0;i<4;i++)
 		{
 			pMatLast[i] = _mm_mul_ps(pMatOne[i], scale);
 		}
 
+		// 第2个矩阵到第i个，依次累加
 		for (int i=1;i<SIZE_PER_BONE;i++)
 		{
+			// 获取第i个矩阵的权重
 			pMatOne = (__m128*)(m_pJointsMatrix+ELEMENT_COUNT_MATIRX*pIndexJoint[y*SIZE_PER_BONE+i]);
 			weight = pWeightJoint[y*SIZE_PER_BONE+i];
 			scale = _mm_load_ps1( &weight );
 			
+			// 第i个矩阵乘于权重
 			for (int j=0;j<4;j++)
 			{
 				pMatLast[j] = _mm_add_ps(pMatLast[j] ,_mm_mul_ps(pMatOne[j], scale) );
 			}
 		}
-#endif
+#endif// if (SIZE_PER_BONE==1)
 
-#if 1
+#if 0
 		pDestPos[y] = dotMultiplyMatrix43( pMatLast, pSrcPos[y] );
 #else
 
@@ -1066,7 +1074,7 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 		//pDestPos[y] = vO;
 #endif
 
-	}
+	}// for
 
 #else
 
@@ -1102,4 +1110,4 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 	}
 
 #endif
-}
+}// function函数结尾
