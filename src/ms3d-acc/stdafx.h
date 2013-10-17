@@ -60,12 +60,12 @@ using namespace std;
 
 #define ENABLE_OPTIMIZE	1 //优化
 
-#define ENABLE_OPENMP	1 //OpenMP
+#define ENABLE_OPENMP	0 //OpenMP
 
-#define ENABLE_CROSSARRAY	1 //交错数组
+#define ENABLE_CROSSARRAY	0 //交错数组
 
 #define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
-#define ENABLE_OPTIMIZE_SSE	0 //SSE
+#define ENABLE_OPTIMIZE_SSE	1 //SSE
 
 #if ENABLE_CROSSARRAY
 #define ELEMENT_COUNT_POINT		8

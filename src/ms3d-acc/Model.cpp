@@ -985,8 +985,29 @@ void collapseOneMatrix( __m128* m00, __m128*m01, __m128*m02,
 		
 	}
 
+#if 1
+__m128 dotMultiplyMatrix43( __m128* pMatLast, __m128& pIn )
+{
+	// 构造 (x, x, x, x) (y, y, y, y) (z, z, z, z)
+	__m128 xxxx, yyyy, zzzz;
+	xxxx = _mm_shuffle_ps( pIn, pIn, _MM_SHUFFLE(0,0,0,0)); 
+	yyyy = _mm_shuffle_ps( pIn, pIn, _MM_SHUFFLE(1,1,1,1)); 
+	zzzz = _mm_shuffle_ps( pIn, pIn, _MM_SHUFFLE(2,2,2,2)); 
 
+	// 计算 m0 * xxxx + m1 * yyyy + m2 * zzzz * m3，  因为SSE不支持多项式连续相加，所以拆成多步
+	__m128 tmp0, tmp1, tmp2, result;
+	tmp0 = _mm_mul_ps( pMatLast[0], xxxx );
+	tmp1 = _mm_mul_ps( pMatLast[1], yyyy );
+	tmp2 = _mm_mul_ps( pMatLast[2], zzzz );
 
+	result = _mm_add_ps(tmp0, tmp1);
+	result = _mm_add_ps(result, tmp2);
+	result = _mm_add_ps(result,  pMatLast[3] );
+
+	// 返回坐标变换后的结果
+	return result;
+}
+#endif
 void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pVertexArrayDynamic ,int* pIndexJoint, float* pWeightJoint, Mesh* pMesh )
 {
 #if (ELEMENT_COUNT_POINT==4)
@@ -1026,15 +1047,25 @@ void Model::modifyVertexByJointKernelOptiSSE( float* pVertexArrayRaw , float* pV
 		}
 #endif
 
-		__m128 vI0, vI1, vI2;
+#if 1
+		pDestPos[y] = dotMultiplyMatrix43( pMatLast, pSrcPos[y] );
+#else
 
-		vI0 = __MM_SELECT( pSrcPos[y], 0); 
-		vI1 = __MM_SELECT( pSrcPos[y], 1); 
-		vI2 = __MM_SELECT( pSrcPos[y], 2); 
+		// 获取原始坐标
+		__m128 pIn = pSrcPos[y];
 
-		__m128 vO = __MM_DOT4x3_PS(pMatLast[0], pMatLast[1], pMatLast[2], pMatLast[3], vI0, vI1, vI2);  
+		// 构造 (x, x, x, x) (y, y, y, y) (z, z, z, z)
+		__m128 xxxx, yyyy, zzzz;
+		xxxx = _mm_shuffle_ps( pIn, pIn, _MM_SHUFFLE(0,0,0,0)); 
+		yyyy = _mm_shuffle_ps( pIn, pIn, _MM_SHUFFLE(1,1,1,1)); 
+		zzzz = _mm_shuffle_ps( pIn, pIn, _MM_SHUFFLE(2,2,2,2));  
 
-		pDestPos[y] = vO;
+		// 得到坐标变换后的结果
+		pDestPos[y] = __MM_DOT4x3_PS(pMatLast[0], pMatLast[1], pMatLast[2], pMatLast[3], xxxx, yyyy, zzzz);  
+
+		//pDestPos[y] = vO;
+#endif
+
 	}
 
 #else
