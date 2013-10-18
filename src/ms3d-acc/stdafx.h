@@ -41,7 +41,7 @@ using namespace std;
 #endif
 #endif
 
-#define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
+#define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
 #define RENDERMODE_MOVING	1	//  1 动画
@@ -60,12 +60,12 @@ using namespace std;
 
 #define ENABLE_OPTIMIZE	1 //优化
 
-#define ENABLE_OPENMP	1 //OpenMP
+#define ENABLE_OPENMP	0 //OpenMP
 
 #define ENABLE_CROSSARRAY	0 //交错数组
 
 #define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
-#define ENABLE_OPTIMIZE_SSE	1 //SSE
+#define ENABLE_OPTIMIZE_SSE	0 //SSE
 
 #if ENABLE_CROSSARRAY
 #define ELEMENT_COUNT_POINT		8
@@ -96,3 +96,7 @@ using namespace std;
 #define ENABLE_MESH_MIX		1//合并mesh
 
 #define ENABLE_CL_GL_INTER	1//OpenCl OpenGL 互操作
+
+#define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
+#define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
+#define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间

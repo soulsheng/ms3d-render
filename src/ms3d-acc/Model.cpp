@@ -143,6 +143,12 @@ void Model::draw()
 #else
 			glVertexPointer(3, GL_FLOAT, ELEMENT_COUNT_POINT*sizeof(float), m_meshVertexData.m_pMesh[i].pVertexArrayDynamic);
 			glEnableClientState( GL_VERTEX_ARRAY );
+
+			glNormalPointer(GL_FLOAT, 3*sizeof(float), m_meshVertexData.m_pMesh[i].pNormal);
+			glEnableClientState( GL_NORMAL_ARRAY );
+
+			glTexCoordPointer(2, GL_FLOAT, 2*sizeof(float), m_meshVertexData.m_pMesh[i].pTexcoord);
+			glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 #endif
 
 #if ENABLE_MESH_MIX
@@ -160,6 +166,8 @@ void Model::draw()
 			
 #if !ENABLE_CROSSARRAY
 			glDisableClientState( GL_VERTEX_ARRAY );
+			glDisableClientState( GL_NORMAL_ARRAY );
+			glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 #endif
 
 		}
@@ -478,6 +486,9 @@ void Model::setupVertexArray()
 		m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
 		m_meshVertexData.m_pMesh[x].materialID = m_pMeshes[x].m_materialIndex;
 
+		m_meshVertexData.m_pMesh[x].pTexcoord = new float[2 * m_pMeshes[x].m_usNumTris * 3];
+		m_meshVertexData.m_pMesh[x].pNormal = new float[3 * m_pMeshes[x].m_usNumTris * 3];
+
 		m_meshVertexIndexTotal += m_meshVertexData.m_pMesh[x].numOfVertex;
 		
 	}
@@ -498,6 +509,9 @@ void Model::setupVertexArray()
 	m_meshVertexData.m_pMesh[x].pIndexJoint = pIndexJoint;
 	m_meshVertexData.m_pMesh[x].pWeightJoint = pWeightJoint;
 	m_meshVertexData.m_pMesh[x].pVertexArrayRaw = pVertexArrayRaw;
+
+	m_meshVertexData.m_pMesh[x].pTexcoord = new float[2 * m_meshVertexIndexTotal];
+	m_meshVertexData.m_pMesh[x].pNormal = new float[3 * m_meshVertexIndexTotal];
 #endif
 	/*vgMs3d::CVector3 vecNormal;
 	vgMs3d::CVector3 vecVertex;
@@ -1188,8 +1202,9 @@ void Model::SetupKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel 
 
 bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue)
 {
-	// update matrix
 	cl_int err = CL_SUCCESS;
+#if TIME_CL_MEMERY_WRITE
+	// update matrix
 	err = clEnqueueWriteBuffer(_cmd_queue, m_pfOCLMatrix, CL_TRUE, 0, sizeof(cl_float4) * MATRIX_SIZE_LINE * m_usNumJoints , m_pJointsMatrix, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
@@ -1197,7 +1212,7 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 		printf("ERROR: Failed to clEnqueueReadBuffer...\n");
 		return false;
 	}
-
+#endif
 	//Set kernel arguments
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &m_pfOCLMatrix);
 	
@@ -1217,6 +1232,8 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
 #endif
 
+
+#if TIME_CL_MEMERY_CALCULATE
 		clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfInputBuffer);
 		clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLIndex);
 		clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLOutputBuffer);
@@ -1241,7 +1258,9 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 			printf("ERROR: Failed to clWaitForEvents...\n");
 			return false;
 		}
+#endif
 
+#if TIME_CL_MEMERY_READ
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
 
 		void* tmp_ptr = NULL;
@@ -1252,7 +1271,7 @@ bool Model::ExecuteKernel(cl_context	pContext, cl_device_id pDevice_ID, cl_kerne
 			printf("ERROR: Failed to clEnqueueReadBuffer...\n");
 			return false;
 		}
-
+#endif
 		clFinish(_cmd_queue);
 
 	}

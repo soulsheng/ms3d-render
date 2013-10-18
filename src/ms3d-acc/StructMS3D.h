@@ -229,6 +229,18 @@ public:
 			pWeightJoint = NULL;
 		}
 
+		if (pTexcoord != NULL)
+		{
+			delete pTexcoord;
+			pTexcoord = NULL;
+		}
+
+		if (pNormal != NULL)
+		{
+			delete pNormal;
+			pNormal = NULL;
+		}
+
 		numOfVertex = 0;
 	}
 
@@ -239,6 +251,9 @@ public:
 	float * pVertexArrayDynamic; // 动态
 	int * pIndexJoint;
 	float * pWeightJoint;
+
+	float * pTexcoord; // 纹理坐标
+	float * pNormal; // 顶点法线
 
 	int numOfVertex;
 };
