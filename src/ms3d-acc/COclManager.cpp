@@ -63,7 +63,7 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 				return false;
 			}
 		}
-
+#if 0
 		size_t deviceSize = 0;
 		cl_int status = clGetGLContextInfoKHR( properties, 
 			CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR,
@@ -73,14 +73,15 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 
 		if (CL_SUCCESS != status || 0 == deviceSize )
 			deviceSize=0;
-
-		status = clGetGLContextInfoKHR( properties, 
+#endif
+		// 获取支持GL-CL互操作的OpenCL设备的ID
+		cl_int status = clGetGLContextInfoKHR( properties, 
 			CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR,
 			sizeof(cl_device_id), 
 			&g_device_ID, 
 			NULL);
 
-		//利用刚刚创建的属性创建上下文
+		//利用刚刚获取的设备ID创建上下文
 		g_context = clCreateContext(properties, 1, &g_device_ID, NULL, NULL, &err);
 #endif
 
