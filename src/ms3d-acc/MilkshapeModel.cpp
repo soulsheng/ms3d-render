@@ -461,8 +461,9 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 	return Model::ExecuteKernel(pContext, pDevice_ID, pKernel, pCmdQueue);
 #endif
 
-	// update matrix
 	cl_int err = CL_SUCCESS;
+#if TIME_CL_MEMERY_WRITE
+	// update matrix
 	err = clEnqueueWriteBuffer(_cmd_queue, m_pfOCLMatrix, CL_TRUE, 0, sizeof(cl_float4) * MATRIX_SIZE_LINE * m_usNumJoints , m_pJointsMatrix, 0, NULL, NULL);
 
 	if (err != CL_SUCCESS)
@@ -470,6 +471,7 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 		printf("ERROR: Failed to clEnqueueReadBuffer...\n");
 		return false;
 	}
+#endif
 
 	//Set kernel arguments
 	clSetKernelArg(_kernel, 2, sizeof(cl_mem), (void *) &m_pfOCLMatrix);
@@ -488,12 +490,13 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 		int nElementSize = m_meshVertexIndexTotal;
 #else
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
-#endif
+#endif//ENABLE_MESH_MIX
 
 #if  ENABLE_CL_GL_INTER
 		clEnqueueAcquireGLObjects(_cmd_queue, 1, &m_oclKernelArg[i].m_pfOCLOutputBuffer, 0, 0, NULL);
-#endif
+#endif//ENABLE_CL_GL_INTER
 
+#if TIME_CL_MEMERY_CALCULATE
 		clSetKernelArg(_kernel, 0, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfInputBuffer);
 		clSetKernelArg(_kernel, 1, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLIndex);
 		clSetKernelArg(_kernel, 3, sizeof(cl_mem), (void *) &m_oclKernelArg[i].m_pfOCLOutputBuffer);
@@ -518,6 +521,8 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 			printf("ERROR: Failed to clWaitForEvents...\n");
 			return false;
 		}
+#endif//TIME_CL_MEMERY_CALCULATE
+
 #if  !ENABLE_CL_GL_INTER
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
 
@@ -531,7 +536,7 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 		}
 #else
 		clEnqueueReleaseGLObjects(_cmd_queue, 1, &m_oclKernelArg[i].m_pfOCLOutputBuffer, 0, 0, 0);
-#endif
+#endif//ENABLE_CL_GL_INTER
 		clFinish(_cmd_queue);
 
 	}
