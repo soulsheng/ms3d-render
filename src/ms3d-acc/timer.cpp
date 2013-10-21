@@ -128,7 +128,7 @@ void CTimer::printfTimer( std::ostringstream &oss )
 		std::cout << itr->first << ":  " << itr->second << std::endl;
 		if ( nItem >= 100 )
 		{
-			if ( 1.5f*dLast < itr->second )
+			if ( 1.5*dLast < itr->second )
 			{
 				continue;
 			}
