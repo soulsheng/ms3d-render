@@ -83,9 +83,9 @@ using namespace std;
 #define SIZE_OPENCL_TEST	(1<<16)	// ²âÊÔ64K¶¥µã, MESH[1]
 
 #define NAME_STRING_PLATFORM_1	"Advanced Micro Devices, Inc."
-#define NAME_STRING_PLATFORM	"Intel(R) OpenCL"
+#define NAME_STRING_PLATFORM_4	"Intel(R) OpenCL"
 #define NAME_STRING_PLATFORM_3	"AMD Accelerated Parallel Processing"
-#define NAME_STRING_PLATFORM_4	"NVIDIA CUDA"
+#define NAME_STRING_PLATFORM	"NVIDIA CUDA"
 
 #define  LocalWorkX		8
 #define  LocalWorkY		8
