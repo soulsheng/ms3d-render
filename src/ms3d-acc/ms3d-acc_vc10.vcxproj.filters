@@ -106,5 +106,8 @@
     <None Include="SimpleOptimizations.cl">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="SimpleOptimizations.cu">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
