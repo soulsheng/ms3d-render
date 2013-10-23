@@ -16,6 +16,12 @@
 
 #include "Model.h"
 
+// CUDA runtime
+#include <cuda_runtime.h>
+#include <helper_functions.h>    // includes cuda.h and cuda_runtime_api.h
+#include <helper_cuda.h>         // helper functions for CUDA error check
+#include <cuda_gl_interop.h>
+#include <helper_cuda_gl.h>      // helper functions for CUDA/GL interop
 
 class MilkshapeModel : public Model
 {
@@ -44,6 +50,8 @@ class MilkshapeModel : public Model
 
 		virtual void SetupKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
 
+		void initializeCUDA( );
+
 	protected:
 		void initializeVBO();
 
@@ -55,7 +63,7 @@ class MilkshapeModel : public Model
 
 protected:
 	void PreSetup();
-
+	bool runCUDAHost();
 protected:	
 
 		//unsigned int maxMeshVertexNumber;
@@ -64,6 +72,29 @@ protected:
 
 		unsigned int* _idGPURenderItemsPerMesh;
 
+		struct  CUDAKernelArguments
+		{
+			float	*d_pInput, *d_pOutput ;  // æÿ’Û±‰ªª ‰»Î ‰≥ˆ∂•µ„
+			float	*d_pMatrix, *d_pWeight ; // æÿ’Û£¨ æÿ’Û»®÷ÿ
+			int		*d_pIndex;				 // æÿ’ÛÀ˜“˝
+			CUDAKernelArguments()
+			{
+				d_pInput = d_pOutput = d_pMatrix = d_pWeight = NULL;
+				d_pIndex = NULL;
+			}
+
+			~CUDAKernelArguments()
+			{
+				if (d_pInput) cudaFree(d_pInput) ;
+				if (d_pOutput) cudaFree(d_pOutput) ;
+				if (d_pMatrix) cudaFree(d_pMatrix) ;
+				if (d_pWeight) cudaFree(d_pWeight) ;
+				if (d_pIndex) cudaFree(d_pIndex) ;
+			}
+		};
+
+		CUDAKernelArguments	_cudaKernelArguments;
+		struct cudaGraphicsResource *cuda_vbo_resource;
 };
 
 #endif // ndef MILKSHAPEMODEL_H

@@ -106,8 +106,13 @@
     <None Include="SimpleOptimizations.cl">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="SimpleOptimizations.cu">
+    <None Include="SimpleOptimizations.cuh">
       <Filter>Source Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="SimpleOptimizations.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

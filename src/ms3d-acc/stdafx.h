@@ -44,10 +44,10 @@ using namespace std;
 #define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
-#define RENDERMODE_MOVING	1	//  1 动画
+#define RENDERMODE_MOVING	0	//  1 动画
 
 #define ENABLE_CONSOLE_WINDOW	1	// 1 打开另一个控制台窗口
-#define ENABLE_TIMER		1		// 1 计时
+#define ENABLE_TIMER		0		// 1 计时
 #define ENABLE_FPS_COUNT	0		// 1 帧速
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
@@ -100,3 +100,5 @@ using namespace std;
 #define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
+
+#define ENABLE_NVIDIA_CUDA	1	//CUDA CPU

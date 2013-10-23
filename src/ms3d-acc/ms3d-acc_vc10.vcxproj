@@ -102,6 +102,9 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>.\Debug/Lesson31.bsc</OutputFile>
     </Bscmake>
+    <CudaCompile>
+      <CodeGeneration>compute_11,sm_11;compute_30,sm_30;%(CodeGeneration)</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Midl>
@@ -193,7 +196,10 @@
     <None Include="math\vector.inl" />
     <None Include="math\vectorImplementation.inl" />
     <None Include="SimpleOptimizations.cl" />
-    <None Include="SimpleOptimizations.cu" />
+    <CudaCompile Include="SimpleOptimizations.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
+    <None Include="SimpleOptimizations.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

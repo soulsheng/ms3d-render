@@ -274,6 +274,9 @@ void MilkshapeModel::initializeVBO()
 	
 	}
 
+	checkCudaErrors(cudaGraphicsGLRegisterBuffer(&cuda_vbo_resource, _idGPURenderItemsPerMesh[m_usNumMeshes], cudaGraphicsMapFlagsWriteDiscard));
+	getLastCudaError("cudaGraphicsGLRegisterBuffer failed");
+
 	// 面的vbo
 	glGenBuffersARB(1, &_idVBOFaceIndexAll);
 	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _idVBOFaceIndexAll);
@@ -351,7 +354,9 @@ void MilkshapeModel::renderVBO()
 
 void MilkshapeModel::modifyVBO()
 {
-#if ENABLE_OPENCL_CPU
+#if ENABLE_NVIDIA_CUDA
+	runCUDAHost();
+#elif ENABLE_OPENCL_CPU
 	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
 #else
 // 遍历每个Mesh，根据Joint更新每个Vertex的坐标
@@ -611,7 +616,70 @@ void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, 
 
 }
 
+extern "C" bool
+	runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight );
+
+bool MilkshapeModel::runCUDAHost()
+{
+	// map OpenGL buffer object for writing from CUDA
+	float *d_pOutput;
+	checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
+	size_t num_bytes;
+	checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&d_pOutput, &num_bytes,
+		cuda_vbo_resource));
+
+	// 骨骼矩阵
+	int nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
+	cudaMemcpy( _cudaKernelArguments.d_pMatrix, m_pJointsMatrix, nBufferSize, cudaMemcpyHostToDevice );
+
+	runCUDADevice(  _cudaKernelArguments.d_pInput, _cudaKernelArguments.d_pIndex, _cudaKernelArguments.d_pMatrix, 
+		d_pOutput, m_meshVertexIndexTotal,  _cudaKernelArguments.d_pWeight );
+
+	// unmap buffer object
+	checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
+
+	return true;
+}
+
+void MilkshapeModel::initializeCUDA()
+{
+	int nElementSize = m_meshVertexIndexTotal;
+	int nBufferSize = 0;
+
+	Ms3dVertexArrayMesh* pMesh = &m_meshVertexData.m_pMesh[m_usNumMeshes];
+
+	float	*h_pInput = pMesh->pVertexArrayRaw;
+	float	*h_pOutput = pMesh->pVertexArrayDynamic;
+	int		*h_pIndexJoint = pMesh->pIndexJoint;
+	float	*h_pWeightJoint = pMesh->pWeightJoint;
 
 
+	// 输入顶点坐标
+	nBufferSize = ELEMENT_COUNT_POINT * nElementSize * sizeof(float);
+	cudaMalloc( &_cudaKernelArguments.d_pInput,  nBufferSize) ;
+	cudaMemcpy( _cudaKernelArguments.d_pInput, h_pInput, nBufferSize, cudaMemcpyHostToDevice );
+
+	// 输出变换后的顶点坐标
+	cudaMalloc( &_cudaKernelArguments.d_pOutput, nBufferSize ) ;
+	cudaMemcpy( _cudaKernelArguments.d_pOutput, h_pOutput, nBufferSize, cudaMemcpyHostToDevice );
+ 
+	// 骨骼矩阵
+	nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
+	cudaMalloc( &_cudaKernelArguments.d_pMatrix, nBufferSize ) ;
+	cudaMemcpy( _cudaKernelArguments.d_pMatrix, m_pJointsMatrix, nBufferSize, cudaMemcpyHostToDevice );
+
+	// 骨骼索引
+	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(int);
+	cudaMalloc( &_cudaKernelArguments.d_pIndex, nBufferSize ) ;
+	cudaMemcpy( _cudaKernelArguments.d_pIndex, h_pIndexJoint, nBufferSize, cudaMemcpyHostToDevice );
+
+	// 骨骼权重
+	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(float);
+	cudaMalloc( &_cudaKernelArguments.d_pWeight, nBufferSize ) ;
+	cudaMemcpy( _cudaKernelArguments.d_pWeight, h_pWeightJoint, nBufferSize, cudaMemcpyHostToDevice );
+
+	
+
+}
 
 

@@ -15,3 +15,5 @@
 /src/ipch
 /bin/Release/*.exe
 /bin/Debug/*.exe
+/src/ms3d-acc/*.o
+/src/ms3d-acc/*.pdb
