@@ -107,6 +107,8 @@ int DrawScene::InitGL( )
 		return -1;
 #endif
 
+	oclManager.Setup_CUDA(0,NULL);
+
 	return TRUE;
 }
 

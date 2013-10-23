@@ -26,6 +26,9 @@ public:
 	bool Setup_OpenCL( const char *program_source , const char *kernel_name );
 	void initialize();
 	void Cleanup();
+
+	bool Setup_CUDA( int argc, char *argv[] );
+
 protected:
 
 private:

@@ -3,6 +3,13 @@
 
 #include "common\utils.h"
 
+// CUDA runtime
+#include <cuda_runtime.h>
+
+// helper functions and utilities to work with CUDA
+#include <helper_cuda.h>
+#include <helper_functions.h>
+
 #define FILENAME_MS3D "data/tortoise.ms3d"
 
 
@@ -193,6 +200,9 @@ void COclManager::Cleanup()
 	//if(g_pfOCLOutput) {_aligned_free( g_pfOCLOutput ); g_pfOCLOutput = NULL;}
 	//unInitialize();
 
+	// 释放 cuda 设备，清理相应的资源
+	cudaDeviceReset();
+
 }
 
 void COclManager::initialize()
@@ -204,4 +214,12 @@ void COclManager::initialize()
 
 	g_min_align = 0;
 	g_device_ID =0;
+}
+
+bool COclManager::Setup_CUDA( int argc, char *argv[] )
+{
+	// use command-line specified CUDA device, otherwise use device with highest Gflops/s
+	findCudaDevice(argc, (const char **)argv);
+
+	return true;
 }
