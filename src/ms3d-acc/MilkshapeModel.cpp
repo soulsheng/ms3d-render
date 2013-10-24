@@ -31,6 +31,11 @@ MilkshapeModel::~MilkshapeModel()
 	cudaThreadExit();
 #endif
 
+	cudaGraphicsUnregisterResource(cuda_vbo_resource);
+
+	//glBindBuffer(m_usNumMeshes+1, _idGPURenderItemsPerMesh);
+	glDeleteBuffers(m_usNumMeshes+1, _idGPURenderItemsPerMesh);
+
 	if (_idGPURenderItemsPerMesh)
 	{
 		delete[] _idGPURenderItemsPerMesh;
@@ -660,8 +665,8 @@ void MilkshapeModel::initializeCUDA()
 	cudaMemcpy( _cudaKernelArguments.d_pInput, h_pInput, nBufferSize, cudaMemcpyHostToDevice );
 
 	// 输出变换后的顶点坐标
-	cudaMalloc( &_cudaKernelArguments.d_pOutput, nBufferSize ) ;
-	cudaMemcpy( _cudaKernelArguments.d_pOutput, h_pOutput, nBufferSize, cudaMemcpyHostToDevice );
+	//cudaMalloc( &_cudaKernelArguments.d_pOutput, nBufferSize ) ;
+	//cudaMemcpy( _cudaKernelArguments.d_pOutput, h_pOutput, nBufferSize, cudaMemcpyHostToDevice );
  
 	// 骨骼矩阵
 	nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
