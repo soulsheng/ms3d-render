@@ -7,7 +7,8 @@
 #include "helper_math.h"
 
 #define SIZE_THREAD_X		256
-#define SIZE_BLOCK_X		16
+#define SIZE_BLOCK_X		64
+#define SIZE_BLOCK_STATIC	0
 
 #define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
 #define MATRIX_SIZE_LINE		4
