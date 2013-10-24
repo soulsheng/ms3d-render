@@ -44,7 +44,7 @@ using namespace std;
 #define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
-#define RENDERMODE_MOVING	0	//  1 动画
+#define RENDERMODE_MOVING	1	//  1 动画
 
 #define ENABLE_CONSOLE_WINDOW	1	// 1 打开另一个控制台窗口
 #define ENABLE_TIMER		0		// 1 计时
@@ -79,7 +79,7 @@ using namespace std;
 
 #define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)
 
-#define ENABLE_OPENCL_CPU	1	//OpenCL CPU
+#define ENABLE_OPENCL_CPU	0	//OpenCL CPU
 #define SIZE_OPENCL_TEST	(1<<16)	// 测试64K顶点, MESH[1]
 
 #define NAME_STRING_PLATFORM_1	"Advanced Micro Devices, Inc."

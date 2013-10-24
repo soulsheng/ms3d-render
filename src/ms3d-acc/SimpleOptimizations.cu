@@ -50,25 +50,24 @@ __global__ void
 transformVectorByMatrix4One( const float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
-	size_t index = threadIdx.x + threadIdx.y*blockDim.x + (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x * blockDim.y;
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
-	if( index >= sizeMax )
-		return;
+		for( int index=indexBase; index<sizeMax; index+=blockDim.x * gridDim.x ){
 
-	float4 pIn = pInput[index];
-	float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
-	float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
-	float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+			float4 pIn = pInput[index];
+			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
 
-	int offset = pIndex[index]*4 ;
+			int offset = pIndex[index]*4 ;
 
-	float4 m0 = pMatrix[offset+0] ;
-	float4 m1 = pMatrix[offset+1] ;
-	float4 m2 = pMatrix[offset+2] ;
-	float4 m3 = pMatrix[offset+3] ;
+			float4 m0 = pMatrix[offset+0] ;
+			float4 m1 = pMatrix[offset+1] ;
+			float4 m2 = pMatrix[offset+2] ;
+			float4 m3 = pMatrix[offset+3] ;
 
-	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
-
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
+		}
 }
 
 
@@ -146,8 +145,8 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 	dim3 grid(16, 1, 1);
     dim3 block(256, 1, 1);
     // execute the kernel
-    //transformVectorByMatrix4One<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
-	updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
+    transformVectorByMatrix4One<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
+	//updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
 
 	return true;
 }
