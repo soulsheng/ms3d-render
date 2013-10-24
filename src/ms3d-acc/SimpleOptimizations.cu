@@ -50,9 +50,13 @@ __global__ void
 transformVectorByMatrix4One( const float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
-	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
+	const int index = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
-		for( int index=indexBase; index<sizeMax; index+=blockDim.x * gridDim.x ){
+	if( index >= sizeMax )
+		return;
+
+		//for( int index=indexBase; index<sizeMax; index+=blockDim.x * gridDim.x )
+		{
 
 			float4 pIn = pInput[index];
 			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
@@ -142,8 +146,10 @@ __global__ void updateVectorByMatrix(float4* pVertexIn, int size, float1* pMatri
 extern "C" bool
 runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight )
 {
-	dim3 grid(16, 1, 1);
-    dim3 block(256, 1, 1);
+	dim3 grid(SIZE_BLOCK_X, 1, 1);
+	grid.y = (sizeMax + SIZE_BLOCK_X*SIZE_THREAD_X) / SIZE_BLOCK_X / SIZE_THREAD_X;
+
+    dim3 block(SIZE_THREAD_X, 1, 1);
     // execute the kernel
     transformVectorByMatrix4One<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
 	//updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
