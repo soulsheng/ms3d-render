@@ -179,13 +179,7 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 	{
 		m_model[i].loadModelData(FILENAME_MS3D);
 		m_model[i].reloadTextures();										// Loads Model Textures
-#if ENABLE_OPENCL_CPU
 		m_model[i].SetupKernel( g_context, g_device_ID, g_kernel, g_cmd_queue );
-#endif
-
-#if ENABLE_NVIDIA_CUDA
-		m_model[i].initializeCUDA();
-#endif
 	}
 
 
@@ -225,5 +219,13 @@ bool COclManager::Setup_CUDA( int argc, char *argv[] )
 	// use command-line specified CUDA device, otherwise use device with highest Gflops/s
 	findCudaDevice(argc, (const char **)argv);
 
+	// load data
+	for (int i=0;i<COUNT_MODEL;i++)
+	{
+		m_model[i].loadModelData(FILENAME_MS3D);
+		m_model[i].reloadTextures();
+
+		m_model[i].initializeCUDA();
+	}
 	return true;
 }
