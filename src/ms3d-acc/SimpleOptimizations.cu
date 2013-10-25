@@ -8,41 +8,44 @@
 __global__ void
 transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
-	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
-	size_t index = threadIdx.x + threadIdx.y*blockDim.x + (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x * blockDim.y;
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
-	
-	if( index >= sizeMax )
+	if( indexBase >= sizeMax )
 		return;
 
-	int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
-	float weight = pWeight[index*SIZE_PER_BONE+0] ;
-	float4 weight4 = make_float4( weight,weight,weight,weight ) ;
+	int index=indexBase;
+#if SIZE_BLOCK_STATIC
+		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
+#endif
+		{
+			int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
+			float weight = pWeight[index*SIZE_PER_BONE+0] ;
+			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
 
-	float4 m0 = pMatrix[offset+0] * weight4 ;
-	float4 m1 = pMatrix[offset+1] * weight4 ;
-	float4 m2 = pMatrix[offset+2] * weight4 ;
-	float4 m3 = pMatrix[offset+3] * weight4 ;
+			float4 m0 = pMatrix[offset+0] * weight4 ;
+			float4 m1 = pMatrix[offset+1] * weight4 ;
+			float4 m2 = pMatrix[offset+2] * weight4 ;
+			float4 m3 = pMatrix[offset+3] * weight4 ;
 
-	for(int i=1;i<SIZE_PER_BONE; i++)
-	{
-		offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
-		weight = pWeight[index*SIZE_PER_BONE+i] ;
-		weight4 = make_float4( weight, weight, weight, weight ) ;
+			for(int i=1;i<SIZE_PER_BONE; i++)
+			{
+				offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
+				weight = pWeight[index*SIZE_PER_BONE+i] ;
+				weight4 = make_float4( weight, weight, weight, weight ) ;
 
-		m0 += pMatrix[offset+0] * weight4 ;
-		m1 += pMatrix[offset+1] * weight4 ;
-		m2 += pMatrix[offset+2] * weight4 ;
-		m3 += pMatrix[offset+3] * weight4 ;
-	}
+				m0 += pMatrix[offset+0] * weight4 ;
+				m1 += pMatrix[offset+1] * weight4 ;
+				m2 += pMatrix[offset+2] * weight4 ;
+				m3 += pMatrix[offset+3] * weight4 ;
+			}
 
-	float4 pIn = pInput[index];
-	float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
-	float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
-	float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+			float4 pIn = pInput[index];
+			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
 
-	pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
-
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+		}
 }
 
 
@@ -160,7 +163,11 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #endif
 
     // execute the kernel
+#if SIZE_PER_BONE==1
     transformVectorByMatrix4One<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
+#else
+    transformVectorByMatrix4<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
+#endif
 	//updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
 
 	return true;
