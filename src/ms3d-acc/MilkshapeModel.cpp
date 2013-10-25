@@ -299,9 +299,9 @@ void MilkshapeModel::renderVBO()
 #if	RENDERMODE_MOVING
 
 #if !ENABLE_TIMER_VBO_MAP
-	getPlayTime( 1, 0, m_fTotalTime , true);
+	//getPlayTime( 1, 0, m_fTotalTime , true);
 
-	updateJoints(fTime);
+	//updateJoints(fTime);
 #endif
 
 	modifyVBO();
@@ -627,6 +627,7 @@ extern "C" bool
 
 bool MilkshapeModel::runCUDAHost()
 {
+#if TIME_CL_MEMERY_WRITE
 	// map OpenGL buffer object for writing from CUDA
 	float *d_pOutput;
 	checkCudaErrors(cudaGraphicsMapResources(1, &cuda_vbo_resource, 0));
@@ -637,12 +638,19 @@ bool MilkshapeModel::runCUDAHost()
 	// ¹Ç÷À¾ØÕó
 	int nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
 	cudaMemcpy( _cudaKernelArguments.d_pMatrix, m_pJointsMatrix, nBufferSize, cudaMemcpyHostToDevice );
+#else
+	float *d_pOutput = _cudaKernelArguments.d_pOutput;
+#endif
 
+#if TIME_CL_MEMERY_CALCULATE
 	runCUDADevice(  _cudaKernelArguments.d_pInput, _cudaKernelArguments.d_pIndex, _cudaKernelArguments.d_pMatrix, 
 		d_pOutput, m_meshVertexIndexTotal,  _cudaKernelArguments.d_pWeight );
+#endif
 
+#if TIME_CL_MEMERY_READ
 	// unmap buffer object
 	checkCudaErrors(cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0));
+#endif
 
 	return true;
 }
@@ -666,8 +674,8 @@ void MilkshapeModel::initializeCUDA()
 	cudaMemcpy( _cudaKernelArguments.d_pInput, h_pInput, nBufferSize, cudaMemcpyHostToDevice );
 
 	// Êä³ö±ä»»ºóµÄ¶¥µã×ø±ê
-	//cudaMalloc( &_cudaKernelArguments.d_pOutput, nBufferSize ) ;
-	//cudaMemcpy( _cudaKernelArguments.d_pOutput, h_pOutput, nBufferSize, cudaMemcpyHostToDevice );
+	cudaMalloc( &_cudaKernelArguments.d_pOutput, nBufferSize ) ;
+	cudaMemcpy( _cudaKernelArguments.d_pOutput, h_pOutput, nBufferSize, cudaMemcpyHostToDevice );
  
 	// ¹Ç÷À¾ØÕó
 	nBufferSize = MATRIX_SIZE_LINE * m_usNumJoints * sizeof(FLOAT4);

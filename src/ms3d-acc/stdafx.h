@@ -56,7 +56,7 @@ using namespace std;
 #define COUNT_MODEL_SIMULATE		4				// 模拟大模型，43倍共1M顶点数  1012134个顶点
 
 #define ENABLE_DRAW_REPEAT	0	//1		重复渲染1个模型
-#define ENABLE_DRAW			1	//1		渲染开启
+#define ENABLE_DRAW			0	//1		渲染开启
 
 #define ENABLE_OPTIMIZE	1 //优化
 
@@ -97,8 +97,8 @@ using namespace std;
 
 #define ENABLE_CL_GL_INTER	1//OpenCl OpenGL 互操作
 
-#define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
-#define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
+#define TIME_CL_MEMERY_READ		0// 测量OpenCL内存数据传输时间，读
+#define TIME_CL_MEMERY_WRITE	0// 测量OpenCL内存数据传输时间，写
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
 
 #define ENABLE_NVIDIA_CUDA	1	//CUDA CPU
