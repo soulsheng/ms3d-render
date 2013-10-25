@@ -47,7 +47,7 @@ using namespace std;
 #define RENDERMODE_MOVING	1	//  1 动画
 
 #define ENABLE_CONSOLE_WINDOW	1	// 1 打开另一个控制台窗口
-#define ENABLE_TIMER		0		// 1 计时
+#define ENABLE_TIMER		1		// 1 计时
 #define ENABLE_FPS_COUNT	0		// 1 帧速
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
@@ -64,7 +64,7 @@ using namespace std;
 
 #define ENABLE_CROSSARRAY	0 //交错数组
 
-#define SIZE_PER_BONE		4 //每个顶点关联骨骼的数目
+#define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
 #define ENABLE_OPTIMIZE_SSE	0 //SSE
 
 #if ENABLE_CROSSARRAY

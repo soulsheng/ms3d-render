@@ -122,6 +122,36 @@ transformVectorByMatrix4One( const float4 *pInput, const int *pIndex, float4 *pM
 		}
 }
 
+__global__ void
+transformVectorByMatrix4One( const Vector4 *pInput, const int *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const Vector1 *pWeight)
+{
+	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
+
+	if( indexBase >= sizeMax )
+		return;
+
+	int index=indexBase;
+#if SIZE_BLOCK_STATIC
+		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
+#endif
+		{
+
+			Vector4 pIn = pInput[index];
+			Vector4 px = make_vector4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			Vector4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			Vector4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+
+			int offset = pIndex[index]*4 ;
+
+			Vector4 m0 = pMatrix[offset+0] ;
+			Vector4 m1 = pMatrix[offset+1] ;
+			Vector4 m2 = pMatrix[offset+2] ;
+			Vector4 m3 = pMatrix[offset+3] ;
+
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
+		}
+}
 
 /* ×ø±ê¾ØÕó±ä»»
 pVertex  : ×ø±ê
@@ -206,7 +236,7 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 
     // execute the kernel
 #if SIZE_PER_BONE==1
-    transformVectorByMatrix4One<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
+    transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #else
     transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #endif
