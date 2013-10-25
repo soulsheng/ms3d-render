@@ -48,6 +48,48 @@ transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMat
 		}
 }
 
+__global__ void
+transformVectorByMatrix4( const  Vector4 *pInput, const INT1 *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const Vector1 *pWeight)
+{
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
+
+	if( indexBase >= sizeMax )
+		return;
+
+	int index=indexBase;
+#if SIZE_BLOCK_STATIC
+		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
+#endif
+		{
+			int offset = pIndex[index*SIZE_PER_BONE+0].x*4 ;
+			FLOAT1 weight = pWeight[index*SIZE_PER_BONE+0] ;
+			Vector4 weight4 = make_vector4( weight.x,weight.x,weight.x,weight.x ) ;
+
+			Vector4 m0 = pMatrix[offset+0] * weight4 ;
+			Vector4 m1 = pMatrix[offset+1] * weight4 ;
+			Vector4 m2 = pMatrix[offset+2] * weight4 ;
+			Vector4 m3 = pMatrix[offset+3] * weight4 ;
+
+			for(int i=1;i<SIZE_PER_BONE; i++)
+			{
+				offset = pIndex[index*SIZE_PER_BONE+i].x*4 ;
+				weight = pWeight[index*SIZE_PER_BONE+i] ;
+				weight4 = make_vector4( weight.x,weight.x,weight.x,weight.x ) ;
+
+				m0 += pMatrix[offset+0] * weight4 ;
+				m1 += pMatrix[offset+1] * weight4 ;
+				m2 += pMatrix[offset+2] * weight4 ;
+				m3 += pMatrix[offset+3] * weight4 ;
+			}
+
+			Vector4 pIn = pInput[index];
+			Vector4 px = make_vector4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			Vector4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			Vector4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+		}
+}
 
 __global__ void
 transformVectorByMatrix4One( const float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
@@ -166,7 +208,7 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #if SIZE_PER_BONE==1
     transformVectorByMatrix4One<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
 #else
-    transformVectorByMatrix4<<< grid, block >>>( (float4*)pInput, pIndex, (float4*)pMatrix, (float4*)pOutput, sizeMax, pWeight );
+    transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #endif
 	//updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
 

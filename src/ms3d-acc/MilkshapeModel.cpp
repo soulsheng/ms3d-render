@@ -16,6 +16,7 @@
 #include "common/utils.h"
 #include <CL/cl_gl.h>
 
+#include "SimpleOptimizations.cuh"
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
@@ -660,7 +661,7 @@ void MilkshapeModel::initializeCUDA()
 
 
 	// ÊäÈë¶¥µã×ø±ê
-	nBufferSize = ELEMENT_COUNT_POINT * nElementSize * sizeof(float);
+	nBufferSize = nElementSize * sizeof(FLOAT4);
 	cudaMalloc( &_cudaKernelArguments.d_pInput,  nBufferSize) ;
 	cudaMemcpy( _cudaKernelArguments.d_pInput, h_pInput, nBufferSize, cudaMemcpyHostToDevice );
 
@@ -669,17 +670,17 @@ void MilkshapeModel::initializeCUDA()
 	//cudaMemcpy( _cudaKernelArguments.d_pOutput, h_pOutput, nBufferSize, cudaMemcpyHostToDevice );
  
 	// ¹Ç÷À¾ØÕó
-	nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
+	nBufferSize = MATRIX_SIZE_LINE * m_usNumJoints * sizeof(FLOAT4);
 	cudaMalloc( &_cudaKernelArguments.d_pMatrix, nBufferSize ) ;
 	cudaMemcpy( _cudaKernelArguments.d_pMatrix, m_pJointsMatrix, nBufferSize, cudaMemcpyHostToDevice );
 
 	// ¹Ç÷ÀË÷Òý
-	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(int);
+	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(INT1);
 	cudaMalloc( &_cudaKernelArguments.d_pIndex, nBufferSize ) ;
 	cudaMemcpy( _cudaKernelArguments.d_pIndex, h_pIndexJoint, nBufferSize, cudaMemcpyHostToDevice );
 
 	// ¹Ç÷ÀÈ¨ÖØ
-	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(float);
+	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(FLOAT1);
 	cudaMalloc( &_cudaKernelArguments.d_pWeight, nBufferSize ) ;
 	cudaMemcpy( _cudaKernelArguments.d_pWeight, h_pWeightJoint, nBufferSize, cudaMemcpyHostToDevice );
 
