@@ -13,7 +13,7 @@
 #define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
 #define MATRIX_SIZE_LINE		4
 
-#define ENABLE_MEMORY_ALIGN		0 // 对齐
+#define ENABLE_MEMORY_ALIGN		1 // 对齐
 
 enum Matrix_Separate_Mode {
 	NO_SEPARATE,		//	不拆分，相邻  1个float属于相邻矩阵的  1个float

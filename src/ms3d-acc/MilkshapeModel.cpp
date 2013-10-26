@@ -645,6 +645,7 @@ bool MilkshapeModel::runCUDAHost()
 #if TIME_CL_MEMERY_CALCULATE
 	runCUDADevice(  _cudaKernelArguments.d_pInput, _cudaKernelArguments.d_pIndex, _cudaKernelArguments.d_pMatrix, 
 		d_pOutput, m_meshVertexIndexTotal,  _cudaKernelArguments.d_pWeight );
+	cudaDeviceSynchronize();
 #endif
 
 #if TIME_CL_MEMERY_READ
