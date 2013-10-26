@@ -6,7 +6,7 @@
 #include "SimpleOptimizations.cuh"
 
 __global__ void
-transformVectorByMatrix4( const  float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight)
+transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
@@ -18,8 +18,8 @@ transformVectorByMatrix4( const  float4 *pInput, const int1 *pIndex, float4 *pMa
 		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
 #endif
 		{
-			int offset = pIndex[index*SIZE_PER_BONE+0].x*4 ;
-			float weight = pWeight[index*SIZE_PER_BONE+0].x ;
+			int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
+			float weight = pWeight[index*SIZE_PER_BONE+0] ;
 			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
 
 			float4 m0 = pMatrix[offset+0] * weight4 ;
@@ -29,8 +29,8 @@ transformVectorByMatrix4( const  float4 *pInput, const int1 *pIndex, float4 *pMa
 
 			for(int i=1;i<SIZE_PER_BONE; i++)
 			{
-				offset = pIndex[index*SIZE_PER_BONE+i].x*4 ;
-				weight = pWeight[index*SIZE_PER_BONE+i].x ;
+				offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
+				weight = pWeight[index*SIZE_PER_BONE+i] ;
 				weight4 = make_float4( weight, weight, weight, weight ) ;
 
 				m0 += pMatrix[offset+0] * weight4 ;
@@ -238,7 +238,7 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #if SIZE_PER_BONE==1
     transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #else
-    transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
+    transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
 #endif
 	//updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
 
