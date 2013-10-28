@@ -299,9 +299,9 @@ void MilkshapeModel::renderVBO()
 #if	RENDERMODE_MOVING
 
 #if !ENABLE_TIMER_VBO_MAP
-	//getPlayTime( 1, 0, m_fTotalTime , true);
+	getPlayTime( 1, 0, m_fTotalTime , true);
 
-	//updateJoints(fTime);
+	updateJoints(fTime);
 #endif
 
 	modifyVBO();

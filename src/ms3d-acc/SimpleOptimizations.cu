@@ -48,6 +48,46 @@ transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMat
 		}
 }
 
+// 等间隔静态网格，骨骼为2
+__global__ void
+transformVectorByMatrix4Cross( const  float4 *pInput, const int2 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
+{
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
+
+	if( indexBase >= sizeMax )
+		return;
+
+	int index=indexBase;
+
+		{
+			int offset = pIndex[index].x * 4 ;
+			float weight = pWeight[index] ;
+			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
+
+			float4 m0 = pMatrix[offset+0] * weight4 ;
+			float4 m1 = pMatrix[offset+1] * weight4 ;
+			float4 m2 = pMatrix[offset+2] * weight4 ;
+			float4 m3 = pMatrix[offset+3] * weight4 ;
+
+			offset = pIndex[index].y * 4 ;
+			weight = 1 - weight ;
+			weight4 = make_float4( weight, weight, weight, weight ) ;
+
+			m0 += pMatrix[offset+0] * weight4 ;
+			m1 += pMatrix[offset+1] * weight4 ;
+			m2 += pMatrix[offset+2] * weight4 ;
+			m3 += pMatrix[offset+3] * weight4 ;
+			
+
+			float4 pIn = pInput[index];
+			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+		}
+}
+
 __global__ void
 transformVectorByMatrix4( const  Vector4 *pInput, const Vector1i *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const Vector1 *pWeight)
 {
@@ -273,6 +313,8 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #else
     transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #endif
+#elif SIZE_PER_BONE==2
+    transformVectorByMatrix4Cross<<< grid, block >>>( (FLOAT4*)pInput, (int2*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
 #else
     transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
 #endif
