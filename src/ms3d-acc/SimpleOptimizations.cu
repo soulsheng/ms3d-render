@@ -48,9 +48,10 @@ transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMat
 		}
 }
 
-// 等间隔静态网格，骨骼为2  合并：顶点、骨骼索引权重
+// 合并：顶点、骨骼索引权重
+template<typename I4, typename F4>
 __global__ void
-transformVectorByMatrix4( const  float4 *pInput, const int2 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax, const float2 *pWeight)
+transformVectorByMatrix4( const  float4 *pInput, const I4 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax, const F4 *pWeight)
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
@@ -60,25 +61,48 @@ transformVectorByMatrix4( const  float4 *pInput, const int2 *pIndex, float4 *pMa
 	int index=indexBase;
 
 		{
-			int offset = pIndex[index].x * 4 ;
-			float weight = pWeight[index].x ;
+			I4 o4 = pIndex[index];
+			F4 w4 = pWeight[index];
+			int offset = o4.x * 4 ;
+			float weight = w4.x ;
 			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
 
 			float4 m0 = pMatrix[offset+0] * weight4 ;
 			float4 m1 = pMatrix[offset+1] * weight4 ;
 			float4 m2 = pMatrix[offset+2] * weight4 ;
 			float4 m3 = pMatrix[offset+3] * weight4 ;
-
-			offset = pIndex[index].y * 4 ;
-			weight = pWeight[index].y ;
+#if SIZE_PER_BONE>=2
+			offset = o4.y * 4 ;
+			weight = w4.y ;
 			weight4 = make_float4( weight, weight, weight, weight ) ;
 
 			m0 += pMatrix[offset+0] * weight4 ;
 			m1 += pMatrix[offset+1] * weight4 ;
 			m2 += pMatrix[offset+2] * weight4 ;
 			m3 += pMatrix[offset+3] * weight4 ;
-			
+#endif		
 
+#if SIZE_PER_BONE>=3
+			offset = o4.z * 4 ;
+			weight = w4.z ;
+			weight4 = make_float4( weight, weight, weight, weight ) ;
+
+			m0 += pMatrix[offset+0] * weight4 ;
+			m1 += pMatrix[offset+1] * weight4 ;
+			m2 += pMatrix[offset+2] * weight4 ;
+			m3 += pMatrix[offset+3] * weight4 ;
+#endif
+
+#if SIZE_PER_BONE>=4
+			offset = o4.w * 4 ;
+			weight = w4.w ;
+			weight4 = make_float4( weight, weight, weight, weight ) ;
+
+			m0 += pMatrix[offset+0] * weight4 ;
+			m1 += pMatrix[offset+1] * weight4 ;
+			m2 += pMatrix[offset+2] * weight4 ;
+			m3 += pMatrix[offset+3] * weight4 ;
+#endif
 			float4 pIn = pInput[index];
 			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
 			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
@@ -238,6 +262,26 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #endif
 
     // execute the kernel
+#if ENABLE_MEMORY_COALESCED
+
+	#if SIZE_PER_BONE==1
+		{
+		#if SERIAL_BLOCK_STATIC
+			int nElementPerThread = (sizeMax + SIZE_BLOCK_X * SIZE_THREAD_X - 1) / (SIZE_BLOCK_X * SIZE_THREAD_X) ;
+			transformVectorByMatrix4OneSerial<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, nElementPerThread, (FLOAT1*)pWeight );
+		#else
+			transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
+		#endif//SERIAL_BLOCK_STATIC
+		}
+	#elif SIZE_PER_BONE==2
+		 transformVectorByMatrix4<int2,float2><<< grid, block >>>( (FLOAT4*)pInput, (int2*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float2*)pWeight );
+	#elif SIZE_PER_BONE==3
+		 transformVectorByMatrix4<int3,float3><<< grid, block >>>( (FLOAT4*)pInput, (int3*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float3*)pWeight );
+	#else	
+		 transformVectorByMatrix4<int4,float4><<< grid, block >>>( (FLOAT4*)pInput, (int4*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float4*)pWeight );
+	#endif//#if(SIZE_PER_BONE)
+
+#else
 #if SIZE_PER_BONE==1
 #if SERIAL_BLOCK_STATIC
 	int nElementPerThread = (sizeMax + SIZE_BLOCK_X * SIZE_THREAD_X - 1) / (SIZE_BLOCK_X * SIZE_THREAD_X) ;
@@ -246,12 +290,11 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #else
     transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #endif
-#elif SIZE_PER_BONE==2
-    transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (int2*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float2*)pWeight );
 #else
     transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
 #endif
 	//updateVectorByMatrix<<< grid, block >>>( (float4*)pInput, sizeMax, (float1*)pMatrix, (float4*)pOutput );
 
+#endif//ENABLE_MEMORY_COALESCED
 	return true;
 }

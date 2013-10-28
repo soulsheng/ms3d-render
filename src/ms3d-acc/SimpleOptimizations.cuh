@@ -11,6 +11,8 @@
 #define SIZE_BLOCK_STATIC	0
 #define SERIAL_BLOCK_STATIC	1 // 每个线程处理连续多个元素
 
+#define ENABLE_MEMORY_COALESCED	1	// 合并访问
+
 #define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
 #define MATRIX_SIZE_LINE		4
 
