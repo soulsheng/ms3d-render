@@ -12,11 +12,18 @@
 #define SERIAL_BLOCK_STATIC	0 // 每个线程处理连续多个元素
 
 #define ENABLE_MEMORY_COALESCED	1	// 合并访问
+#define ENABLE_MEMORY_CONST		1	// 常量显存
 
 #define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
 #define MATRIX_SIZE_LINE		4
 
+#define MATRIX_FIX_LENGTH		200
+
 #define ENABLE_MEMORY_ALIGN		1 // 对齐
+
+#define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
+#define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
+#define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
 
 enum Matrix_Separate_Mode {
 	NO_SEPARATE,		//	不拆分，相邻  1个float属于相邻矩阵的  1个float

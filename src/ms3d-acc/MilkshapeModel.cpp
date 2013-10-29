@@ -175,6 +175,7 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	m_pJoints = new MS3DJoint[m_usNumJoints];
 	//m_pJointsMatrix = new float[m_usNumJoints*16];
 	m_pJointsMatrix = (float*) _aligned_malloc(m_usNumJoints*ELEMENT_COUNT_MATIRX * sizeof(float), 16);
+	m_pJointsMatrixConstLength = (float*) _aligned_malloc(MATRIX_FIX_LENGTH*ELEMENT_COUNT_MATIRX * sizeof(float), 16);
 
 	//Read in joint info
 	for(int x = 0; x < m_usNumJoints; x++)
@@ -621,6 +622,8 @@ void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, 
 	}
 
 }
+extern "C" void
+	updateConstantMemory( const float* pHost );
 
 extern "C" bool
 	runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight );
@@ -635,9 +638,14 @@ bool MilkshapeModel::runCUDAHost()
 	checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void **)&d_pOutput, &num_bytes,
 		cuda_vbo_resource));
 
+#if ENABLE_MEMORY_CONST
+	updateConstantMemory( m_pJointsMatrixConstLength );
+#else
 	// ¹Ç÷À¾ØÕó
 	int nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
 	cudaMemcpy( _cudaKernelArguments.d_pMatrix, m_pJointsMatrix, nBufferSize, cudaMemcpyHostToDevice );
+#endif
+
 #else
 	float *d_pOutput = _cudaKernelArguments.d_pOutput;
 #endif
@@ -693,7 +701,8 @@ void MilkshapeModel::initializeCUDA()
 	cudaMalloc( &_cudaKernelArguments.d_pWeight, nBufferSize ) ;
 	cudaMemcpy( _cudaKernelArguments.d_pWeight, h_pWeightJoint, nBufferSize, cudaMemcpyHostToDevice );
 
-	
+	updateJoints(0);
+	updateConstantMemory( m_pJointsMatrixConstLength );
 
 }
 

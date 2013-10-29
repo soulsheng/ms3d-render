@@ -5,6 +5,94 @@
 
 #include "SimpleOptimizations.cuh"
 
+__constant__		float4		const_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+
+__global__ void
+transformVectorByMatrix4Const( const  float4 *pInput, const int *pIndex, float4 *pOutput,  int sizeMax,  const float *pWeight)
+{
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
+
+	if( indexBase >= sizeMax )
+		return;
+
+	int index=indexBase;
+#if SIZE_BLOCK_STATIC
+		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
+#endif
+		{
+#if ENABLE_MEMORY_COALESCED
+			int offset = pIndex[index]*4 ;
+			float weight = pWeight[index] ;
+#else
+			int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
+			float weight = pWeight[index*SIZE_PER_BONE+0] ;
+#endif//#if ENABLE_MEMORY_COALESCED 合并访问
+
+			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
+
+			float4 m0 = const_pMatrix_f4[offset+0] * weight4 ;
+			float4 m1 = const_pMatrix_f4[offset+1] * weight4 ;
+			float4 m2 = const_pMatrix_f4[offset+2] * weight4 ;
+			float4 m3 = const_pMatrix_f4[offset+3] * weight4 ;
+
+			
+			for(int i=1;i<SIZE_PER_BONE; i++)
+			{
+#if ENABLE_MEMORY_COALESCED
+				offset = pIndex[index+i*sizeMax]*4 ;
+				weight = pWeight[index+i*sizeMax] ;
+#else
+				offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
+				weight = pWeight[index*SIZE_PER_BONE+i] ;
+#endif//#if ENABLE_MEMORY_COALESCED 合并访问
+
+				weight4 = make_float4( weight, weight, weight, weight ) ;
+
+				m0 += const_pMatrix_f4[offset+0] * weight4 ;
+				m1 += const_pMatrix_f4[offset+1] * weight4 ;
+				m2 += const_pMatrix_f4[offset+2] * weight4 ;
+				m3 += const_pMatrix_f4[offset+3] * weight4 ;
+			}
+
+			float4 pIn = pInput[index];
+			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
+		}
+}
+__global__ void
+transformVectorByMatrix4OneConst( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight)
+{
+	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
+	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
+
+	if( indexBase >= sizeMax )
+		return;
+
+	int index=indexBase;
+#if SIZE_BLOCK_STATIC
+		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
+#endif
+		{
+
+			float4 pIn = pInput[index];
+			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+
+			int offset = pIndex[index].x*4 ;
+
+			float4 m0 = const_pMatrix_f4[offset+0] ;
+			float4 m1 = const_pMatrix_f4[offset+1] ;
+			float4 m2 = const_pMatrix_f4[offset+2] ;
+			float4 m3 = const_pMatrix_f4[offset+3] ;
+
+			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
+		}
+}
+
 __global__ void
 transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
@@ -196,6 +284,11 @@ transformVectorByMatrix4One( const Vector4 *pInput, const Vector1i *pIndex, Vect
 		}
 }
 
+extern "C" void
+updateConstantMemory( const float* pHost )
+{
+	cudaMemcpyToSymbol( const_pMatrix_f4, pHost, sizeof(float4) * MATRIX_SIZE_LINE * MATRIX_FIX_LENGTH );
+}
 
 extern "C" bool
 runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight )
@@ -209,8 +302,16 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 	int nCountBlocks = (sizeMax + nCountThreadsPerBlock - 1) / nCountThreadsPerBlock ;
 	dim3 grid( nCountBlocks, 1, 1);
 #endif
-
+	
     // execute the kernel
+#if ENABLE_MEMORY_CONST
+
+#if SIZE_PER_BONE==1
+	 transformVectorByMatrix4OneConst<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
+#else
+    transformVectorByMatrix4Const<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
+#endif// SIZE_PER_BONE==1
+#else// !ENABLE_MEMORY_CONST
 #if SIZE_PER_BONE==1
 #if SERIAL_BLOCK_STATIC
 	int nElementPerThread = (sizeMax + SIZE_BLOCK_X * SIZE_THREAD_X - 1) / (SIZE_BLOCK_X * SIZE_THREAD_X) ;
@@ -221,6 +322,7 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #endif
 #else
     transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
+#endif
 #endif
 
 	return true;

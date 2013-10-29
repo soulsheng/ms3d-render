@@ -56,6 +56,7 @@ Model::Model()
 	m_meshVertexIndexTotal = 0;
 
 	m_pJointsMatrix = NULL;
+	m_pJointsMatrixConstLength = NULL;
 }
 
 Model::~Model()
@@ -105,7 +106,13 @@ Model::~Model()
 		_aligned_free(m_pJointsMatrix);//delete[] m_pJointsMatrix;
 		m_pJointsMatrix = NULL;
 	}
-	
+
+	if (m_pJointsMatrixConstLength)
+	{
+		_aligned_free(m_pJointsMatrixConstLength);//delete[] m_pJointsMatrix;
+		m_pJointsMatrixConstLength = NULL;
+	}
+
 	for (int i = 0; i< m_oclKernelArg.size(); i++)
 	{
 		clReleaseMemObject( m_oclKernelArg[i].m_pfInputBuffer );
@@ -305,6 +312,7 @@ void Model::updateJoints(float fTime)
 		}
 #else
 		memcpy(m_pJointsMatrix+16*i, m_pJoints[i].m_matFinal.Get(), sizeof(float)*16 );
+		memcpy(m_pJointsMatrixConstLength+16*i, m_pJoints[i].m_matFinal.Get(), sizeof(float)*16 );
 #endif
 
 	}
