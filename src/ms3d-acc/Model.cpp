@@ -20,6 +20,7 @@
 
 #include <emmintrin.h>		// SSE
 
+#include "SimpleOptimizations.cuh"
 
 cl_context Model::_context = NULL;
 cl_device_id Model::_device_ID = 0;
@@ -410,6 +411,22 @@ void Model::modifyVertexByJointInit()
 
 		offset += nVertexSize;
 	}
+
+#if ENABLE_MEMORY_COALESCED
+	int sizeElement = m_meshVertexData.m_pMesh[m_usNumMeshes].numOfVertex;
+	int* pIndexJoint = m_meshVertexData.m_pMesh[m_usNumMeshes].pIndexJoint;
+	int* pIndexJointTmp = new int[sizeElement*SIZE_PER_BONE];
+	for (int i=0; i<sizeElement; i++)
+	{
+		for (int j=0; j<SIZE_PER_BONE; j++)
+		{
+			*( pIndexJointTmp + j*sizeElement + i) = *( pIndexJoint + i*SIZE_PER_BONE + j);
+		}
+	}
+	memcpy( pIndexJoint, pIndexJointTmp, sizeElement*SIZE_PER_BONE*sizeof(int) );
+	delete[] pIndexJointTmp;
+#endif
+
 #endif
 }
 

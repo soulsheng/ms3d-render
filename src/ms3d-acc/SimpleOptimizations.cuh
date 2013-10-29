@@ -4,12 +4,12 @@
 
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
-#include "helper_math.h"
+//#include "helper_math.h"
 
 #define SIZE_THREAD_X		256
 #define SIZE_BLOCK_X		64
 #define SIZE_BLOCK_STATIC	0
-#define SERIAL_BLOCK_STATIC	1 // 每个线程处理连续多个元素
+#define SERIAL_BLOCK_STATIC	0 // 每个线程处理连续多个元素
 
 #define ENABLE_MEMORY_COALESCED	1	// 合并访问
 
