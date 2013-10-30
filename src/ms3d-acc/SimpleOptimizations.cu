@@ -135,7 +135,7 @@ transformVectorByMatrix4OneShared( const FLOAT4 *pInput, const int *pIndex, FLOA
 #endif
 
 __global__ void
-transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
+transformVectorByMatrix4( const  FLOAT4 *pInput, const int *pIndex, FLOAT4 *pMatrix, FLOAT4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
@@ -155,12 +155,15 @@ transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMat
 			float weight = pWeight[index*SIZE_PER_BONE+0] ;
 #endif//#if ENABLE_MEMORY_COALESCED 合并访问
 
-			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
-
-			float4 m0 = pMatrix[offset+0] * weight4 ;
-			float4 m1 = pMatrix[offset+1] * weight4 ;
-			float4 m2 = pMatrix[offset+2] * weight4 ;
-			float4 m3 = pMatrix[offset+3] * weight4 ;
+#if ENABLE_MEMORY_ALIGN
+			FLOAT4 weight4 = make_float4( weight,weight,weight,weight ) ;
+#else
+			FLOAT4 weight4 = make_vector4( weight,weight,weight,weight ) ;
+#endif
+			FLOAT4 m0 = pMatrix[offset+0] * weight4 ;
+			FLOAT4 m1 = pMatrix[offset+1] * weight4 ;
+			FLOAT4 m2 = pMatrix[offset+2] * weight4 ;
+			FLOAT4 m3 = pMatrix[offset+3] * weight4 ;
 
 			
 			for(int i=1;i<SIZE_PER_BONE; i++)
@@ -173,71 +176,27 @@ transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMat
 				weight = pWeight[index*SIZE_PER_BONE+i] ;
 #endif//#if ENABLE_MEMORY_COALESCED 合并访问
 
-				weight4 = make_float4( weight, weight, weight, weight ) ;
-
-				m0 += pMatrix[offset+0] * weight4 ;
-				m1 += pMatrix[offset+1] * weight4 ;
-				m2 += pMatrix[offset+2] * weight4 ;
-				m3 += pMatrix[offset+3] * weight4 ;
-			}
-
-			float4 pIn = pInput[index];
-			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
-			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
-			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
-
-			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
-		}
-}
-
-__global__ void
-transformVectorByMatrix4( const  Vector4 *pInput, const int *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const float *pWeight)
-{
-	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
-
-	if( indexBase >= sizeMax )
-		return;
-
-	int index=indexBase;
-#if SIZE_BLOCK_STATIC
-		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
-#endif
-		{
-#if ENABLE_MEMORY_COALESCED
-			int offset = pIndex[index]*4 ;
-			float weight = pWeight[index] ;
+#if ENABLE_MEMORY_ALIGN
+				weight4 = make_float4( weight,weight,weight,weight ) ;
 #else
-			int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
-			float weight = pWeight[index*SIZE_PER_BONE+0] ;
-#endif//#if ENABLE_MEMORY_COALESCED 合并访问
-			Vector4 weight4 = make_vector4( weight,weight,weight,weight ) ;
-
-			Vector4 m0 = pMatrix[offset+0] * weight4 ;
-			Vector4 m1 = pMatrix[offset+1] * weight4 ;
-			Vector4 m2 = pMatrix[offset+2] * weight4 ;
-			Vector4 m3 = pMatrix[offset+3] * weight4 ;
-
-			for(int i=1;i<SIZE_PER_BONE; i++)
-			{
-#if ENABLE_MEMORY_COALESCED
-				offset = pIndex[index+i*sizeMax]*4 ;
-				weight = pWeight[index+i*sizeMax] ;
-#else
-				offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
-				weight = pWeight[index*SIZE_PER_BONE+i] ;
-#endif//#if ENABLE_MEMORY_COALESCED 合并访问
 				weight4 = make_vector4( weight,weight,weight,weight ) ;
-
+#endif
 				m0 += pMatrix[offset+0] * weight4 ;
 				m1 += pMatrix[offset+1] * weight4 ;
 				m2 += pMatrix[offset+2] * weight4 ;
 				m3 += pMatrix[offset+3] * weight4 ;
 			}
 
-			Vector4 pIn = pInput[index];
-			Vector4 px = make_vector4(pIn.x, pIn.x, pIn.x, pIn.x) ;
-			Vector4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
-			Vector4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+			FLOAT4 pIn = pInput[index];
+#if ENABLE_MEMORY_ALIGN
+			FLOAT4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			FLOAT4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			FLOAT4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+#else
+			FLOAT4 px = make_vector4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			FLOAT4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			FLOAT4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+#endif
 
 			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
 		}
