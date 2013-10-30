@@ -5,10 +5,10 @@
 
 #include "SimpleOptimizations.cuh"
 
-__constant__		float4		const_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+__constant__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
 
 __global__ void
-transformVectorByMatrix4Const( const  float4 *pInput, const int *pIndex, float4 *pOutput,  int sizeMax,  const float *pWeight)
+transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
@@ -30,10 +30,10 @@ transformVectorByMatrix4Const( const  float4 *pInput, const int *pIndex, float4 
 
 			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
 
-			float4 m0 = const_pMatrix_f4[offset+0] * weight4 ;
-			float4 m1 = const_pMatrix_f4[offset+1] * weight4 ;
-			float4 m2 = const_pMatrix_f4[offset+2] * weight4 ;
-			float4 m3 = const_pMatrix_f4[offset+3] * weight4 ;
+			float4 m0 = shared_pMatrix_f4[offset+0] * weight4 ;
+			float4 m1 = shared_pMatrix_f4[offset+1] * weight4 ;
+			float4 m2 = shared_pMatrix_f4[offset+2] * weight4 ;
+			float4 m3 = shared_pMatrix_f4[offset+3] * weight4 ;
 
 			
 			for(int i=1;i<SIZE_PER_BONE; i++)
@@ -48,10 +48,10 @@ transformVectorByMatrix4Const( const  float4 *pInput, const int *pIndex, float4 
 
 				weight4 = make_float4( weight, weight, weight, weight ) ;
 
-				m0 += const_pMatrix_f4[offset+0] * weight4 ;
-				m1 += const_pMatrix_f4[offset+1] * weight4 ;
-				m2 += const_pMatrix_f4[offset+2] * weight4 ;
-				m3 += const_pMatrix_f4[offset+3] * weight4 ;
+				m0 += shared_pMatrix_f4[offset+0] * weight4 ;
+				m1 += shared_pMatrix_f4[offset+1] * weight4 ;
+				m2 += shared_pMatrix_f4[offset+2] * weight4 ;
+				m3 += shared_pMatrix_f4[offset+3] * weight4 ;
 			}
 
 			float4 pIn = pInput[index];
@@ -63,7 +63,7 @@ transformVectorByMatrix4Const( const  float4 *pInput, const int *pIndex, float4 
 		}
 }
 __global__ void
-transformVectorByMatrix4OneConst( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight)
+transformVectorByMatrix4OneShared( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight)
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
@@ -84,10 +84,10 @@ transformVectorByMatrix4OneConst( const float4 *pInput, const int1 *pIndex, floa
 
 			int offset = pIndex[index].x*4 ;
 
-			float4 m0 = const_pMatrix_f4[offset+0] ;
-			float4 m1 = const_pMatrix_f4[offset+1] ;
-			float4 m2 = const_pMatrix_f4[offset+2] ;
-			float4 m3 = const_pMatrix_f4[offset+3] ;
+			float4 m0 = shared_pMatrix_f4[offset+0] ;
+			float4 m1 = shared_pMatrix_f4[offset+1] ;
+			float4 m2 = shared_pMatrix_f4[offset+2] ;
+			float4 m3 = shared_pMatrix_f4[offset+3] ;
 
 			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
 		}
@@ -285,9 +285,9 @@ transformVectorByMatrix4One( const Vector4 *pInput, const Vector1i *pIndex, Vect
 }
 
 extern "C" void
-updateConstantMemory( const float* pHost )
+updateSharedMemory( const float* pHost )
 {
-	cudaMemcpyToSymbol( const_pMatrix_f4, pHost, sizeof(float4) * MATRIX_SIZE_LINE * MATRIX_FIX_LENGTH );
+	cudaMemcpyToSymbol( shared_pMatrix_f4, pHost, sizeof(float4) * MATRIX_SIZE_LINE * MATRIX_FIX_LENGTH );
 }
 
 extern "C" bool
@@ -307,9 +307,9 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #if ENABLE_MEMORY_CONST
 
 #if SIZE_PER_BONE==1
-	 transformVectorByMatrix4OneConst<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
+	 transformVectorByMatrix4OneShared<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
 #else
-    transformVectorByMatrix4Const<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
+    transformVectorByMatrix4Shared<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
 #endif// SIZE_PER_BONE==1
 #else// !ENABLE_MEMORY_CONST
 #if SIZE_PER_BONE==1

@@ -623,7 +623,7 @@ void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, 
 
 }
 extern "C" void
-	updateConstantMemory( const float* pHost );
+	updateSharedMemory( const float* pHost );
 
 extern "C" bool
 	runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight );
@@ -639,7 +639,7 @@ bool MilkshapeModel::runCUDAHost()
 		cuda_vbo_resource));
 
 #if ENABLE_MEMORY_CONST
-	updateConstantMemory( m_pJointsMatrixConstLength );
+	updateSharedMemory( m_pJointsMatrixConstLength );
 #else
 	// ¹Ç÷À¾ØÕó
 	int nBufferSize = ELEMENT_COUNT_MATIRX * m_usNumJoints * sizeof(float);
@@ -702,7 +702,7 @@ void MilkshapeModel::initializeCUDA()
 	cudaMemcpy( _cudaKernelArguments.d_pWeight, h_pWeightJoint, nBufferSize, cudaMemcpyHostToDevice );
 
 	updateJoints(0);
-	updateConstantMemory( m_pJointsMatrixConstLength );
+	updateSharedMemory( m_pJointsMatrixConstLength );
 
 }
 
