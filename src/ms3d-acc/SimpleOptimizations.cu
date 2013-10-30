@@ -6,11 +6,12 @@
 #include "SimpleOptimizations.cuh"
 
 #if ENABLE_MEMORY_CONST
-__constant__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+__constant__		FLOAT4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
 #endif
 
+#if ENABLE_MEMORY_CONST | ENABLE_MEMORY_SHARED
 __global__ void
-transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight, int sizeJoint )
+transformVectorByMatrix4Shared( const  FLOAT4 *pInput, const int *pIndex, FLOAT4 *pMatrix, FLOAT4 *pOutput,  int sizeMax,  const float *pWeight, int sizeJoint )
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
@@ -18,7 +19,7 @@ transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4
 		return;
 
 #if ENABLE_MEMORY_SHARED
-	__shared__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+	__shared__		FLOAT4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
 	if( threadIdx.x < sizeJoint )
 	{
 		for(int i=0;i<MATRIX_SIZE_LINE;i++)
@@ -40,12 +41,15 @@ transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4
 			float weight = pWeight[index*SIZE_PER_BONE+0] ;
 #endif//#if ENABLE_MEMORY_COALESCED 合并访问
 
-			float4 weight4 = make_float4( weight,weight,weight,weight ) ;
-
-			float4 m0 = shared_pMatrix_f4[offset+0] * weight4 ;
-			float4 m1 = shared_pMatrix_f4[offset+1] * weight4 ;
-			float4 m2 = shared_pMatrix_f4[offset+2] * weight4 ;
-			float4 m3 = shared_pMatrix_f4[offset+3] * weight4 ;
+#if ENABLE_MEMORY_ALIGN
+			FLOAT4 weight4 = make_float4( weight,weight,weight,weight ) ;
+#else
+			FLOAT4 weight4 = make_vector4( weight,weight,weight,weight ) ;
+#endif
+			FLOAT4 m0 = shared_pMatrix_f4[offset+0] * weight4 ;
+			FLOAT4 m1 = shared_pMatrix_f4[offset+1] * weight4 ;
+			FLOAT4 m2 = shared_pMatrix_f4[offset+2] * weight4 ;
+			FLOAT4 m3 = shared_pMatrix_f4[offset+3] * weight4 ;
 
 			
 			for(int i=1;i<SIZE_PER_BONE; i++)
@@ -58,24 +62,33 @@ transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4
 				weight = pWeight[index*SIZE_PER_BONE+i] ;
 #endif//#if ENABLE_MEMORY_COALESCED 合并访问
 
-				weight4 = make_float4( weight, weight, weight, weight ) ;
-
+#if ENABLE_MEMORY_ALIGN
+				weight4 = make_float4( weight,weight,weight,weight ) ;
+#else
+				weight4 = make_vector4( weight,weight,weight,weight ) ;
+#endif
 				m0 += shared_pMatrix_f4[offset+0] * weight4 ;
 				m1 += shared_pMatrix_f4[offset+1] * weight4 ;
 				m2 += shared_pMatrix_f4[offset+2] * weight4 ;
 				m3 += shared_pMatrix_f4[offset+3] * weight4 ;
 			}
 
-			float4 pIn = pInput[index];
-			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
-			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
-			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+			FLOAT4 pIn = pInput[index];
+#if ENABLE_MEMORY_ALIGN
+			FLOAT4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			FLOAT4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			FLOAT4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+#else
+			FLOAT4 px = make_vector4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			FLOAT4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			FLOAT4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+#endif
 
 			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3;
 		}
 }
 __global__ void
-transformVectorByMatrix4OneShared( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight, int sizeJoint )
+transformVectorByMatrix4OneShared( const FLOAT4 *pInput, const int *pIndex, FLOAT4 *pMatrix, FLOAT4 *pOutput,  int sizeMax,  const float *pWeight, int sizeJoint )
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
@@ -84,7 +97,7 @@ transformVectorByMatrix4OneShared( const float4 *pInput, const int1 *pIndex, flo
 		return;
 
 #if ENABLE_MEMORY_SHARED
-	__shared__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+	__shared__		FLOAT4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
 	if( threadIdx.x < sizeJoint )
 	{
 		for(int i=0;i<MATRIX_SIZE_LINE;i++)
@@ -99,21 +112,27 @@ transformVectorByMatrix4OneShared( const float4 *pInput, const int1 *pIndex, flo
 #endif
 		{
 
-			float4 pIn = pInput[index];
-			float4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
-			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
-			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+			FLOAT4 pIn = pInput[index];
+#if ENABLE_MEMORY_ALIGN
+			FLOAT4 px = make_float4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			FLOAT4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			FLOAT4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+#else
+			FLOAT4 px = make_vector4(pIn.x, pIn.x, pIn.x, pIn.x) ;
+			FLOAT4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
+			FLOAT4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
+#endif
+			int offset = pIndex[index]*4 ;
 
-			int offset = pIndex[index].x*4 ;
-
-			float4 m0 = shared_pMatrix_f4[offset+0] ;
-			float4 m1 = shared_pMatrix_f4[offset+1] ;
-			float4 m2 = shared_pMatrix_f4[offset+2] ;
-			float4 m3 = shared_pMatrix_f4[offset+3] ;
+			FLOAT4 m0 = shared_pMatrix_f4[offset+0] ;
+			FLOAT4 m1 = shared_pMatrix_f4[offset+1] ;
+			FLOAT4 m2 = shared_pMatrix_f4[offset+2] ;
+			FLOAT4 m3 = shared_pMatrix_f4[offset+3] ;
 
 			pOutput[index] = px * m0 + py * m1 + pz * m2 + m3 ;
 		}
 }
+#endif
 
 __global__ void
 transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
@@ -172,7 +191,7 @@ transformVectorByMatrix4( const  float4 *pInput, const int *pIndex, float4 *pMat
 }
 
 __global__ void
-transformVectorByMatrix4( const  Vector4 *pInput, const Vector1i *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const Vector1 *pWeight)
+transformVectorByMatrix4( const  Vector4 *pInput, const int *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
@@ -184,9 +203,14 @@ transformVectorByMatrix4( const  Vector4 *pInput, const Vector1i *pIndex, Vector
 		for( ; index<sizeMax; index+=blockDim.x * gridDim.x )
 #endif
 		{
-			int offset = pIndex[index*SIZE_PER_BONE+0].x*4 ;
-			Vector1 weight = pWeight[index*SIZE_PER_BONE+0] ;
-			Vector4 weight4 = make_vector4( weight.x,weight.x,weight.x,weight.x ) ;
+#if ENABLE_MEMORY_COALESCED
+			int offset = pIndex[index]*4 ;
+			float weight = pWeight[index] ;
+#else
+			int offset = pIndex[index*SIZE_PER_BONE+0]*4 ;
+			float weight = pWeight[index*SIZE_PER_BONE+0] ;
+#endif//#if ENABLE_MEMORY_COALESCED 合并访问
+			Vector4 weight4 = make_vector4( weight,weight,weight,weight ) ;
 
 			Vector4 m0 = pMatrix[offset+0] * weight4 ;
 			Vector4 m1 = pMatrix[offset+1] * weight4 ;
@@ -195,9 +219,14 @@ transformVectorByMatrix4( const  Vector4 *pInput, const Vector1i *pIndex, Vector
 
 			for(int i=1;i<SIZE_PER_BONE; i++)
 			{
-				offset = pIndex[index*SIZE_PER_BONE+i].x*4 ;
+#if ENABLE_MEMORY_COALESCED
+				offset = pIndex[index+i*sizeMax]*4 ;
+				weight = pWeight[index+i*sizeMax] ;
+#else
+				offset = pIndex[index*SIZE_PER_BONE+i]*4 ;
 				weight = pWeight[index*SIZE_PER_BONE+i] ;
-				weight4 = make_vector4( weight.x,weight.x,weight.x,weight.x ) ;
+#endif//#if ENABLE_MEMORY_COALESCED 合并访问
+				weight4 = make_vector4( weight,weight,weight,weight ) ;
 
 				m0 += pMatrix[offset+0] * weight4 ;
 				m1 += pMatrix[offset+1] * weight4 ;
@@ -215,7 +244,7 @@ transformVectorByMatrix4( const  Vector4 *pInput, const Vector1i *pIndex, Vector
 }
 
 __global__ void
-transformVectorByMatrix4One( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight)
+transformVectorByMatrix4One( const float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
@@ -234,7 +263,7 @@ transformVectorByMatrix4One( const float4 *pInput, const int1 *pIndex, float4 *p
 			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
 			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
 
-			int offset = pIndex[index].x*4 ;
+			int offset = pIndex[index]*4 ;
 
 			float4 m0 = pMatrix[offset+0] ;
 			float4 m1 = pMatrix[offset+1] ;
@@ -246,7 +275,7 @@ transformVectorByMatrix4One( const float4 *pInput, const int1 *pIndex, float4 *p
 }
 
 __global__ void
-transformVectorByMatrix4OneSerial( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax, int nElementPerThread, const float1 *pWeight)
+transformVectorByMatrix4OneSerial( const float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax, int nElementPerThread, const float *pWeight)
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
@@ -264,7 +293,7 @@ transformVectorByMatrix4OneSerial( const float4 *pInput, const int1 *pIndex, flo
 			float4 py = make_float4(pIn.y, pIn.y, pIn.y, pIn.y) ;
 			float4 pz = make_float4(pIn.z, pIn.z, pIn.z, pIn.z) ;
 
-			int offset = pIndex[index].x*4 ;
+			int offset = pIndex[index]*4 ;
 
 			float4 m0 = pMatrix[offset+0] ;
 			float4 m1 = pMatrix[offset+1] ;
@@ -276,7 +305,7 @@ transformVectorByMatrix4OneSerial( const float4 *pInput, const int1 *pIndex, flo
 }
 
 __global__ void
-transformVectorByMatrix4One( const Vector4 *pInput, const Vector1i *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const Vector1 *pWeight)
+transformVectorByMatrix4One( const Vector4 *pInput, const int *pIndex, Vector4 *pMatrix, Vector4 *pOutput,  int sizeMax,  const float *pWeight)
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
@@ -295,7 +324,7 @@ transformVectorByMatrix4One( const Vector4 *pInput, const Vector1i *pIndex, Vect
 			Vector4 py = make_vector4(pIn.y, pIn.y, pIn.y, pIn.y) ;
 			Vector4 pz = make_vector4(pIn.z, pIn.z, pIn.z, pIn.z) ;
 
-			int offset = pIndex[index].x*4 ;
+			int offset = pIndex[index]*4 ;
 
 			Vector4 m0 = pMatrix[offset+0] ;
 			Vector4 m1 = pMatrix[offset+1] ;
@@ -331,21 +360,21 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #if ENABLE_MEMORY_CONST | ENABLE_MEMORY_SHARED
 
 #if SIZE_PER_BONE==1
-	 transformVectorByMatrix4OneShared<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight, sizeJoint );
+	 transformVectorByMatrix4OneShared<<< grid, block >>>( (FLOAT4*)pInput, pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, pWeight, sizeJoint );
 #else
-    transformVectorByMatrix4Shared<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight, sizeJoint );
+    transformVectorByMatrix4Shared<<< grid, block >>>( (FLOAT4*)pInput, pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, pWeight, sizeJoint );
 #endif// SIZE_PER_BONE==1
 #else// !ENABLE_MEMORY_CONST
 #if SIZE_PER_BONE==1
 #if SERIAL_BLOCK_STATIC
 	int nElementPerThread = (sizeMax + SIZE_BLOCK_X * SIZE_THREAD_X - 1) / (SIZE_BLOCK_X * SIZE_THREAD_X) ;
 
-    transformVectorByMatrix4OneSerial<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, nElementPerThread, (FLOAT1*)pWeight );
+    transformVectorByMatrix4OneSerial<<< grid, block >>>( (FLOAT4*)pInput, pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, nElementPerThread, pWeight );
 #else
-    transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
+    transformVectorByMatrix4One<<< grid, block >>>( (FLOAT4*)pInput, pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, pWeight );
 #endif
 #else
-    transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
+    transformVectorByMatrix4<<< grid, block >>>( (FLOAT4*)pInput, pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, pWeight );
 #endif
 #endif
 

@@ -692,12 +692,12 @@ void MilkshapeModel::initializeCUDA()
 	cudaMemcpy( _cudaKernelArguments.d_pMatrix, m_pJointsMatrix, nBufferSize, cudaMemcpyHostToDevice );
 
 	// ¹Ç÷ÀË÷Òý
-	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(INT1);
+	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(int);
 	cudaMalloc( &_cudaKernelArguments.d_pIndex, nBufferSize ) ;
 	cudaMemcpy( _cudaKernelArguments.d_pIndex, h_pIndexJoint, nBufferSize, cudaMemcpyHostToDevice );
 
 	// ¹Ç÷ÀÈ¨ÖØ
-	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(FLOAT1);
+	nBufferSize = SIZE_PER_BONE * nElementSize * sizeof(float);
 	cudaMalloc( &_cudaKernelArguments.d_pWeight, nBufferSize ) ;
 	cudaMemcpy( _cudaKernelArguments.d_pWeight, h_pWeightJoint, nBufferSize, cudaMemcpyHostToDevice );
 

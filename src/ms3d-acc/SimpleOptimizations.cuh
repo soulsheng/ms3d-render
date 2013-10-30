@@ -12,8 +12,8 @@
 #define SERIAL_BLOCK_STATIC	0 // 每个线程处理连续多个元素
 
 #define ENABLE_MEMORY_COALESCED	1	// 合并访问
-#define ENABLE_MEMORY_CONST		0	// 常量显存
-#define ENABLE_MEMORY_SHARED	1	// 共享显存
+#define ENABLE_MEMORY_CONST		1	// 常量显存
+#define ENABLE_MEMORY_SHARED	0	// 共享显存
 
 #define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
 #define MATRIX_SIZE_LINE		4
@@ -24,7 +24,7 @@
 
 #define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
-#define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
+#define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间   测kernel时，TIME_CL_MEMERY_READ = TIME_CL_MEMERY_WRITE = ENABLE_DRAW = 0  //getPlayTime//updateJoints
 
 enum Matrix_Separate_Mode {
 	NO_SEPARATE,		//	不拆分，相邻  1个float属于相邻矩阵的  1个float
@@ -34,17 +34,11 @@ enum Matrix_Separate_Mode {
 
 
 struct Vector4 { float x,y,z,w; };
-struct Vector1 { float x; };
-struct Vector1i { int x; };
 
 #if ENABLE_MEMORY_ALIGN
 typedef float4		FLOAT4;
-typedef float1		FLOAT1;
-typedef int1		INT1;
 #else
 typedef Vector4		FLOAT4;
-typedef Vector1		FLOAT1;
-typedef Vector1i	INT1;
 #endif
 
 static __inline__ __host__ __device__ Vector4 make_vector4(float x, float y, float z, float w)
