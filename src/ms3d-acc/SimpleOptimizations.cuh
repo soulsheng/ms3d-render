@@ -12,12 +12,13 @@
 #define SERIAL_BLOCK_STATIC	0 // 每个线程处理连续多个元素
 
 #define ENABLE_MEMORY_COALESCED	1	// 合并访问
-#define ENABLE_MEMORY_CONST		1	// 常量显存
+#define ENABLE_MEMORY_CONST		0	// 常量显存
+#define ENABLE_MEMORY_SHARED	1	// 共享显存
 
 #define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
 #define MATRIX_SIZE_LINE		4
 
-#define MATRIX_FIX_LENGTH		200
+#define MATRIX_FIX_LENGTH		100
 
 #define ENABLE_MEMORY_ALIGN		1 // 对齐
 

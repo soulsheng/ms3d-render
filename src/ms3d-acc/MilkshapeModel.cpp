@@ -626,7 +626,7 @@ extern "C" void
 	updateSharedMemory( const float* pHost );
 
 extern "C" bool
-	runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight );
+	runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight, int sizeJoint );
 
 bool MilkshapeModel::runCUDAHost()
 {
@@ -652,7 +652,7 @@ bool MilkshapeModel::runCUDAHost()
 
 #if TIME_CL_MEMERY_CALCULATE
 	runCUDADevice(  _cudaKernelArguments.d_pInput, _cudaKernelArguments.d_pIndex, _cudaKernelArguments.d_pMatrix, 
-		d_pOutput, m_meshVertexIndexTotal,  _cudaKernelArguments.d_pWeight );
+		d_pOutput, m_meshVertexIndexTotal,  _cudaKernelArguments.d_pWeight, m_usNumJoints );
 	cudaDeviceSynchronize();
 #endif
 

@@ -5,15 +5,27 @@
 
 #include "SimpleOptimizations.cuh"
 
+#if ENABLE_MEMORY_CONST
 __constant__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+#endif
 
 __global__ void
-transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4 *pOutput,  int sizeMax,  const float *pWeight)
+transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float *pWeight, int sizeJoint )
 {
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
 	if( indexBase >= sizeMax )
 		return;
+
+#if ENABLE_MEMORY_SHARED
+	__shared__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+	if( threadIdx.x < sizeJoint )
+	{
+		for(int i=0;i<MATRIX_SIZE_LINE;i++)
+			shared_pMatrix_f4[ threadIdx.x + i*sizeJoint ] = pMatrix[ threadIdx.x + i*sizeJoint ];	
+	}
+	__syncthreads();
+#endif
 
 	int index=indexBase;
 #if SIZE_BLOCK_STATIC
@@ -63,13 +75,23 @@ transformVectorByMatrix4Shared( const  float4 *pInput, const int *pIndex, float4
 		}
 }
 __global__ void
-transformVectorByMatrix4OneShared( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight)
+transformVectorByMatrix4OneShared( const float4 *pInput, const int1 *pIndex, float4 *pMatrix, float4 *pOutput,  int sizeMax,  const float1 *pWeight, int sizeJoint )
 {
 	//size_t index = get_global_id(0) + get_global_id(1) *get_global_size(0);
 	const int indexBase = ( gridDim.x * blockIdx.y + blockIdx.x ) * blockDim.x + threadIdx.x;
 
 	if( indexBase >= sizeMax )
 		return;
+
+#if ENABLE_MEMORY_SHARED
+	__shared__		float4		shared_pMatrix_f4[ MATRIX_FIX_LENGTH * MATRIX_SIZE_LINE ];// 100个矩阵空间，6.4k
+	if( threadIdx.x < sizeJoint )
+	{
+		for(int i=0;i<MATRIX_SIZE_LINE;i++)
+			shared_pMatrix_f4[ threadIdx.x + i*sizeJoint ] = pMatrix[ threadIdx.x + i*sizeJoint ];	
+	}
+	__syncthreads();
+#endif
 
 	int index=indexBase;
 #if SIZE_BLOCK_STATIC
@@ -287,11 +309,13 @@ transformVectorByMatrix4One( const Vector4 *pInput, const Vector1i *pIndex, Vect
 extern "C" void
 updateSharedMemory( const float* pHost )
 {
+#if ENABLE_MEMORY_CONST
 	cudaMemcpyToSymbol( shared_pMatrix_f4, pHost, sizeof(float4) * MATRIX_SIZE_LINE * MATRIX_FIX_LENGTH );
+#endif
 }
 
 extern "C" bool
-runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight )
+runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pOutput,  int sizeMax,  const float *pWeight, int sizeJoint )
 {
 	int nCountThreadsPerBlock = SIZE_THREAD_X;
     dim3 block( nCountThreadsPerBlock, 1, 1);
@@ -304,12 +328,12 @@ runCUDADevice( const float *pInput, const int *pIndex, float *pMatrix, float *pO
 #endif
 	
     // execute the kernel
-#if ENABLE_MEMORY_CONST
+#if ENABLE_MEMORY_CONST | ENABLE_MEMORY_SHARED
 
 #if SIZE_PER_BONE==1
-	 transformVectorByMatrix4OneShared<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight );
+	 transformVectorByMatrix4OneShared<<< grid, block >>>( (FLOAT4*)pInput, (INT1*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (FLOAT1*)pWeight, sizeJoint );
 #else
-    transformVectorByMatrix4Shared<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pOutput, sizeMax, (float*)pWeight );
+    transformVectorByMatrix4Shared<<< grid, block >>>( (FLOAT4*)pInput, (int*)pIndex, (FLOAT4*)pMatrix, (FLOAT4*)pOutput, sizeMax, (float*)pWeight, sizeJoint );
 #endif// SIZE_PER_BONE==1
 #else// !ENABLE_MEMORY_CONST
 #if SIZE_PER_BONE==1
