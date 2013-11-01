@@ -115,7 +115,7 @@ transformVectorByMatrix4One( const __global float4 *pInput, const __global int *
 	float4 py = (float4)pIn.y  ;
 	float4 pz = (float4)pIn.z  ;
 
-	int offset = pIndex[index]*4 ;
+	int offset = (int)(pIn.w) * 4;//pIndex[index]*4 ;
 
 	float4 m0 = pMatrix[offset+0] ;
 	float4 m1 = pMatrix[offset+1] ;

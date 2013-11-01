@@ -669,6 +669,7 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z) ] = vecVertex[0];
 			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z)+1 ] = vecVertex[1];
 			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z)+2 ] = vecVertex[2];
+			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z)+3 ] = pVert->m_cBone;
 
 #if ENABLE_CROSSARRAY
 			if(pVertexArrayStatic)
@@ -683,6 +684,7 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z) ] = pVert->m_vVert[0];
 				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z)+1 ] = pVert->m_vVert[1];
 				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z)+2 ] = pVert->m_vVert[2];
+				pVertexArrayStatic[ ELEMENT_COUNT_POINT*(3*y+z)+3 ] = pVert->m_cBone;
 			}
 #endif
 		}//for z
