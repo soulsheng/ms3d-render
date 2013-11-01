@@ -100,3 +100,5 @@ using namespace std;
 #define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
+
+#define GLSL_4CPP	0// GLSL计算顶点

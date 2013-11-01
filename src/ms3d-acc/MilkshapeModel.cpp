@@ -16,6 +16,25 @@
 #include "common/utils.h"
 #include <CL/cl_gl.h>
 
+#define STRINGIFY(A) #A
+
+// Vertex Shader Code
+const char * vertexShaderSource = STRINGIFY(
+	void main()
+	{
+		gl_Position = ftransform();// 等效于： glPosition = gl_ModelViewProjectionMatrix * gl_Vertex;
+		gl_FrontColor = gl_Color;
+	}
+);
+
+// Vertex Shader Code
+const char * pixelShaderSource = STRINGIFY(
+	void main()
+	{
+		gl_FragColor = gl_Color;
+	}
+);
+
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
@@ -295,7 +314,11 @@ void MilkshapeModel::renderVBO()
 	updateJoints(fTime);
 #endif
 
+#if GLSL_4CPP				
+	glUseProgram(glProgram);
+#else
 	modifyVBO();
+#endif
 
 #endif
 
@@ -615,3 +638,64 @@ void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, 
 
 
 
+void MilkshapeModel::SetupGLSL()
+{
+	GLint err = 0;
+
+	// Vertex Shader
+	vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, &vertexShaderSource, 0);
+	glCompileShader(vertexShader);
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &err);
+	if(!err)
+	{
+		char temp[256];
+		glGetShaderInfoLog(vertexShader, 256, 0, temp);
+		std::cout << "Failed to compile shader: " << temp << std::endl;
+		return ;
+	}
+
+	// Pixel Shader
+	pixelShader  = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(pixelShader, 1, &pixelShaderSource, 0);
+	glCompileShader(pixelShader); 
+	glGetShaderiv(pixelShader, GL_COMPILE_STATUS, &err);
+	if(!err)
+	{
+		char temp[256];
+		glGetShaderInfoLog(pixelShader, 256, 0, temp);
+		std::cout << "Failed to compile shader: " << temp << std::endl;
+		return ;
+	}
+
+	// Program 程序
+	glProgram = glCreateProgram();
+	glAttachShader(glProgram, vertexShader);
+	glAttachShader(glProgram, pixelShader);
+	glLinkProgram(glProgram);
+	glGetProgramiv(glProgram, GL_LINK_STATUS, &err);
+	if(!err)
+	{
+		char temp[256];
+		glGetProgramInfoLog(glProgram, 256, 0, temp);
+		std::cout << "Failed to link program: " << temp << std::endl;
+		glDeleteProgram(glProgram);
+		glProgram = 0;
+	}
+#if 0
+	// Parameter 参数绑定
+	_locationUniform[0] = glGetUniformLocation( glProgram, "matrixLine");
+	_locationUniform[1] = glGetUniformLocation( glProgram, "boneNumber");
+	_locationAttrib[0] = glGetAttribLocation( glProgram, "blendIndices");
+	_locationAttrib[1] = glGetAttribLocation( glProgram, "blendWeights");
+#endif
+}
+
+void MilkshapeModel::clearGLSL()
+{
+	glDetachShader(glProgram, vertexShader);
+	glDetachShader(glProgram, pixelShader);
+	glDeleteProgram(glProgram);
+	glDeleteShader(vertexShader);
+	glDeleteShader(pixelShader);
+}

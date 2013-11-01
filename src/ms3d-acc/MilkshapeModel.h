@@ -43,6 +43,9 @@ class MilkshapeModel : public Model
 		virtual bool ExecuteKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
 
 		virtual void SetupKernel(cl_context pContext, cl_device_id pDevice_ID, cl_kernel pKernel, cl_command_queue pCmdQueue);
+		
+		void SetupGLSL();
+		void clearGLSL();
 
 	protected:
 		void initializeVBO();
@@ -64,6 +67,9 @@ protected:
 
 		unsigned int* _idGPURenderItemsPerMesh;
 
+		// glsl
+		GLuint vertexShader, pixelShader;
+		GLuint glProgram;
 };
 
 #endif // ndef MILKSHAPEMODEL_H
