@@ -374,11 +374,11 @@ void Model::modifyVertexByJointInit()
 		
 		modifyVertexByJointInitKernel(  pVertexArrayRaw, pVertexArrayStatic, pIndexJoint, pWeightJoint, pMesh ); // ¸üÐÂpVertexArrayStatic
 
-#if !RENDERMODE_MOVING
+//#if !RENDERMODE_MOVING
 
 		memcpy( pVertexArrayDynamic, pVertexArrayStatic,  ELEMENT_COUNT_POINT * m_pMeshes[x].m_usNumTris * 3 * sizeof(float) );
 
-#endif
+//#endif
 	}
 
 #if ENABLE_MESH_MIX
