@@ -666,9 +666,9 @@ void Model::modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pV
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[1];
 			pVertexArrayDynamic[vertexCnt++] = vecNormal[2];
 #endif
-			pVertexArrayDynamic[vertexCnt++] = vecVertex[0];
-			pVertexArrayDynamic[vertexCnt++] = vecVertex[1];
-			pVertexArrayDynamic[vertexCnt++] = vecVertex[2];
+			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z) ] = vecVertex[0];
+			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z)+1 ] = vecVertex[1];
+			pVertexArrayDynamic[ ELEMENT_COUNT_POINT*(3*y+z)+2 ] = vecVertex[2];
 
 #if ENABLE_CROSSARRAY
 			if(pVertexArrayStatic)
