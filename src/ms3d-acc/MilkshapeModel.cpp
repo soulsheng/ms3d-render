@@ -314,7 +314,7 @@ void MilkshapeModel::renderVBO()
 	updateJoints(fTime);
 #endif
 
-#if GLSL_4CPP				
+#if ENABLE_GLSL_4CPP				
 	glUseProgram(glProgram);
 #else
 	modifyVBO();
@@ -689,6 +689,18 @@ void MilkshapeModel::SetupGLSL()
 	_locationAttrib[0] = glGetAttribLocation( glProgram, "blendIndices");
 	_locationAttrib[1] = glGetAttribLocation( glProgram, "blendWeights");
 #endif
+
+	// Program  ‘‘À––
+	glValidateProgram(glProgram);
+	glGetProgramiv(glProgram, GL_VALIDATE_STATUS, &err);
+	if(!err)
+	{
+		char temp[256];
+		glGetProgramInfoLog(glProgram, 256, 0, temp);
+		std::cout << "Failed to execute program: " << temp << std::endl;
+		glDeleteProgram(glProgram);
+		glProgram = 0;
+	}
 }
 
 void MilkshapeModel::clearGLSL()

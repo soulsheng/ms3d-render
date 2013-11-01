@@ -47,7 +47,7 @@ using namespace std;
 #define RENDERMODE_MOVING	1	//  1 动画
 
 #define ENABLE_CONSOLE_WINDOW	1	// 1 打开另一个控制台窗口
-#define ENABLE_TIMER		1		// 1 计时
+#define ENABLE_TIMER		0		// 1 计时
 #define ENABLE_FPS_COUNT	0		// 1 帧速
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
@@ -101,4 +101,4 @@ using namespace std;
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
 
-#define GLSL_4CPP	0// GLSL计算顶点
+#define ENABLE_GLSL_4CPP	1// GLSL计算顶点

@@ -175,6 +175,10 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 #if ENABLE_OPENCL_CPU
 		m_model[i].SetupKernel( g_context, g_device_ID, g_kernel, g_cmd_queue );
 #endif
+
+#if ENABLE_GLSL_4CPP
+		m_model[i].SetupGLSL();
+#endif
 	}
 
 
