@@ -20,6 +20,18 @@
 
 // Vertex Shader
 #if SIZE_PER_BONE == 1
+
+#if DEFAULT_GLSL_SHADER
+const char * vertexShaderSource = STRINGIFY(
+void main()
+{
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(gl_Vertex.xyz, 1.0);  
+
+	gl_FrontColor = gl_Color; // 默认不变
+}
+
+);
+#else
 const char * vertexShaderSource = STRINGIFY(
 uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
 void main()
@@ -35,6 +47,7 @@ void main()
 }
 
 );
+#endif
 
 #elif SIZE_PER_BONE == 2
 const char * vertexShaderSource = STRINGIFY(
@@ -433,16 +446,17 @@ void MilkshapeModel::renderVBO()
 
 #if ENABLE_GLSL_4CPP		
 	
-	//glUniformMatrix4fv( _locationUniform, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
-	//glUniform4fv( _locationUniform, m_usNumJoints*4 , (GLfloat*)m_pJointsMatrix );
+	
 
 #if ENABLE_MATRIX_PARAM
 	glUniformMatrix4fv( _locationUniformMatrix, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
 #else
 	glUniform4fv( _locationUniformMatrix, m_usNumJoints*3 , (GLfloat*)m_pJointsMatrix43 );
 #endif
-	//glUniform4fv( _locationUniform, 24*3 , (GLfloat*)m_pJointsMatrix43 );
+	
 
+
+#if SIZE_PER_BONE>1
 	glUniform1i( _locationUniformMultiBone, SIZE_PER_BONE );
 
 	
@@ -459,7 +473,8 @@ void MilkshapeModel::renderVBO()
 	glVertexAttribPointer( _locationAttributeIndex, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, pMesh->pIndexJoint );
 	glEnableVertexAttribArray( _locationAttributeWeight );
 	glVertexAttribPointer( _locationAttributeWeight, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, pMesh->pWeightJoint );
-#endif
+#endif//VBO_MATRIX_INDEX
+#endif//SIZE_PER_BONE>1
 
 	glUseProgram(glProgram);
 #else
@@ -830,13 +845,14 @@ void MilkshapeModel::SetupGLSL()
 	}
 
 	// Parameter 参数绑定
+#if !DEFAULT_GLSL_SHADER
 	_locationUniformMatrix = glGetUniformLocation( glProgram, "matrix");
 	_locationUniformMultiBone = glGetUniformLocation( glProgram, "boneNumber");
 #if 1
 	_locationAttributeIndex = glGetAttribLocation( glProgram, "blendIndices");
 	_locationAttributeWeight = glGetAttribLocation( glProgram, "blendWeights");
 #endif
-
+#endif
 	// Program 试运行
 	glValidateProgram(glProgram);
 	glGetProgramiv(glProgram, GL_VALIDATE_STATUS, &err);

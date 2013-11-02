@@ -64,7 +64,7 @@ using namespace std;
 
 #define ENABLE_CROSSARRAY	0 //交错数组
 
-#define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
+#define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
 #define ENABLE_OPTIMIZE_SSE	0 //SSE
 
 #if ENABLE_CROSSARRAY
@@ -106,3 +106,5 @@ using namespace std;
 #define ENABLE_MATRIX_PARAM	1// GSLL直接用matrix参数
 
 #define VBO_MATRIX_INDEX	1// 矩阵索引和权重使用vbo
+
+#define DEFAULT_GLSL_SHADER	0
