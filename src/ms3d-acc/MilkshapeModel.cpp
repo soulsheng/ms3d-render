@@ -144,8 +144,13 @@ MilkshapeModel::~MilkshapeModel()
 
 	if (_idGPURenderItemsPerMesh)
 	{
+		for(int i=0;i<m_usNumMeshes;i++)
+			glDeleteBuffers( m_usNumMeshes, _idGPURenderItemsPerMesh);
 		delete[] _idGPURenderItemsPerMesh;
 	}
+
+	glDeleteBuffers( 1, &_vboAttributeIndex);
+	glDeleteBuffers( 1, &_vboAttributeIndex);
 }
 
 
@@ -397,6 +402,22 @@ void MilkshapeModel::initializeVBO()
 	int nSizeFaceIndex = m_meshVertexIndexTotal * sizeof(GLuint);
 	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, nSizeFaceIndex, m_pIndexArray, GL_STATIC_DRAW_ARB);
 
+
+	// 矩阵权重vbo
+	Ms3dVertexArrayMesh* pMesh = m_meshVertexData.m_pMesh + m_meshVertexData.m_numberOfMesh;
+
+	glGenBuffersARB(1, &_vboAttributeIndex);
+	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _vboAttributeIndex);
+
+	int nSizeBuffer = m_meshVertexIndexTotal * sizeof(float)*SIZE_PER_BONE;
+	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, nSizeBuffer, pMesh->pIndexJoint, GL_STATIC_DRAW_ARB);
+
+	// 矩阵权重vbo
+	glGenBuffersARB(1, &_vboAttributeWeight);
+	glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, _vboAttributeWeight);
+
+	nSizeBuffer = m_meshVertexIndexTotal * sizeof(float)*SIZE_PER_BONE;
+	glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, nSizeBuffer, pMesh->pWeightJoint, GL_STATIC_DRAW_ARB);
 }
 
 void MilkshapeModel::renderVBO()
@@ -424,12 +445,21 @@ void MilkshapeModel::renderVBO()
 
 	glUniform1i( _locationUniformMultiBone, SIZE_PER_BONE );
 
+	
+#if VBO_MATRIX_INDEX
+	glEnableVertexAttribArray( _locationAttributeIndex );
+	glBindBufferARB( GL_ARRAY_BUFFER_ARB, _vboAttributeIndex );
+	glVertexAttribPointer( _locationAttributeIndex, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, 0 );
+	glEnableVertexAttribArray( _locationAttributeWeight );
+	glBindBufferARB( GL_ARRAY_BUFFER_ARB, _vboAttributeWeight );
+	glVertexAttribPointer( _locationAttributeWeight, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, 0 );
+#else
 	Ms3dVertexArrayMesh* pMesh = m_meshVertexData.m_pMesh + m_meshVertexData.m_numberOfMesh;
 	glEnableVertexAttribArray( _locationAttributeIndex );
 	glVertexAttribPointer( _locationAttributeIndex, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, pMesh->pIndexJoint );
-
 	glEnableVertexAttribArray( _locationAttributeWeight );
 	glVertexAttribPointer( _locationAttributeWeight, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, pMesh->pWeightJoint );
+#endif
 
 	glUseProgram(glProgram);
 #else

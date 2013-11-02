@@ -76,6 +76,9 @@ protected:
 
 		int   _locationAttributeIndex;		// 参数位置，矩阵索引
 		int   _locationAttributeWeight;		// 参数位置，矩阵权重
+
+		GLuint	  _vboAttributeIndex;
+		GLuint	  _vboAttributeWeight;
 };
 
 #endif // ndef MILKSHAPEMODEL_H
