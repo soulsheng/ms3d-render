@@ -36,15 +36,14 @@ void main()
 
 );
 
-#else // SIZE_PER_BONE > 1
-
+#elif SIZE_PER_BONE == 2
 const char * vertexShaderSource = STRINGIFY(
 uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
-//uniform vec4	matrix[77*4]; // 新增参数，传递骨骼矩阵
 
 uniform int		boneNumber;		// 骨骼数目，每个顶点绑定的
 attribute vec2  blendIndices ;	// 骨骼索引
 attribute vec2	blendWeights;	// 骨骼权重
+
 void main()
 {
 	vec3 blendPos = vec3(0.0);
@@ -63,6 +62,61 @@ void main()
 }
 
 );
+
+#elif SIZE_PER_BONE == 3
+const char * vertexShaderSource = STRINGIFY(
+	uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
+
+uniform int		boneNumber;		// 骨骼数目，每个顶点绑定的
+attribute vec3  blendIndices ;	// 骨骼索引
+attribute vec3	blendWeights;	// 骨骼权重
+
+void main()
+{
+	vec3 blendPos = vec3(0.0);
+
+	for (int i=0; i<boneNumber;i++)
+	{
+		int index = int(blendIndices[i]);	// 获取矩阵索引
+		float weight = blendWeights[i];	// 获取矩阵权重
+		blendPos += (gl_Vertex * matrix[index]).xyz * weight;
+	}
+
+	// 在视图矩阵变换前，先进行骨骼矩阵变换
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(blendPos, 1.0);  
+
+	gl_FrontColor = gl_Color; // 默认不变
+}
+
+);
+
+#else
+const char * vertexShaderSource = STRINGIFY(
+	uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
+
+uniform int		boneNumber;		// 骨骼数目，每个顶点绑定的
+attribute vec4  blendIndices ;	// 骨骼索引
+attribute vec4	blendWeights;	// 骨骼权重
+
+void main()
+{
+	vec3 blendPos = vec3(0.0);
+
+	for (int i=0; i<boneNumber;i++)
+	{
+		int index = int(blendIndices[i]);	// 获取矩阵索引
+		float weight = blendWeights[i];	// 获取矩阵权重
+		blendPos += (gl_Vertex * matrix[index]).xyz * weight;
+	}
+
+	// 在视图矩阵变换前，先进行骨骼矩阵变换
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(blendPos, 1.0);  
+
+	gl_FrontColor = gl_Color; // 默认不变
+}
+
+);
+
 #endif
 
 // Vertex Shader Code
@@ -372,10 +426,10 @@ void MilkshapeModel::renderVBO()
 
 	Ms3dVertexArrayMesh* pMesh = m_meshVertexData.m_pMesh + m_meshVertexData.m_numberOfMesh;
 	glEnableVertexAttribArray( _locationAttributeIndex );
-	glVertexAttribPointer( _locationAttributeIndex, 2, GL_FLOAT, GL_FALSE, 0, pMesh->pIndexJoint );
+	glVertexAttribPointer( _locationAttributeIndex, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, pMesh->pIndexJoint );
 
 	glEnableVertexAttribArray( _locationAttributeWeight );
-	glVertexAttribPointer( _locationAttributeWeight, 2, GL_FLOAT, GL_FALSE, 0, pMesh->pWeightJoint );
+	glVertexAttribPointer( _locationAttributeWeight, SIZE_PER_BONE, GL_FLOAT, GL_FALSE, 0, pMesh->pWeightJoint );
 
 	glUseProgram(glProgram);
 #else
