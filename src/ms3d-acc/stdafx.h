@@ -103,3 +103,4 @@ using namespace std;
 
 #define ENABLE_GLSL_4CPP	1// GLSL计算顶点
 #define ENABLE_MATRIX_TRANSPOSE	1// 矩阵转置， 行优先或列优先 状态切换
+#define ENABLE_MATRIX_PARAM	1// GSLL直接用matrix参数

@@ -20,18 +20,22 @@
 
 // Vertex Shader
 const char * vertexShaderSource = STRINGIFY(
-//uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
-uniform vec4	matrix[77*3]; // 新增参数，传递骨骼矩阵
+uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
+//uniform vec4	matrix[77*4]; // 新增参数，传递骨骼矩阵
 void main()
 {
 	// gl_Position = ftransform(); 默认矩阵变换改为以下自定义矩阵变换
-	int  index = int(gl_Vertex.w) * 3; // 获取矩阵索引
+	/*
+	int  index = int(gl_Vertex.w) * 4; // 获取矩阵索引
 
 	mat4 worldMatrix;
 	worldMatrix[0] = matrix[index];
 	worldMatrix[1] = matrix[index + 1];
 	worldMatrix[2] = matrix[index + 2];
 	worldMatrix[3] = vec4(0);//matrix[index + 3];
+	*/
+	int  index = int(gl_Vertex.w); // 获取矩阵索引
+	mat4 worldMatrix = matrix[index];
 
 	vec3 blendPos = ( vec4(gl_Vertex.xyz, 1.0) * worldMatrix).xyz ;
 	// 在视图矩阵变换前，先进行骨骼矩阵变换
@@ -337,7 +341,12 @@ void MilkshapeModel::renderVBO()
 	
 	//glUniformMatrix4fv( _locationUniform, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
 	//glUniform4fv( _locationUniform, m_usNumJoints*4 , (GLfloat*)m_pJointsMatrix );
+
+#if ENABLE_MATRIX_PARAM
+	glUniformMatrix4fv( _locationUniform, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
+#else
 	glUniform4fv( _locationUniform, m_usNumJoints*3 , (GLfloat*)m_pJointsMatrix43 );
+#endif
 	//glUniform4fv( _locationUniform, 24*3 , (GLfloat*)m_pJointsMatrix43 );
 
 	glUseProgram(glProgram);
