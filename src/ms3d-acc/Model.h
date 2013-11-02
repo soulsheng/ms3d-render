@@ -55,7 +55,7 @@ protected:
 	void updateJoints(float fTime);
 
 	void modifyVertexByJointInit();
-	void modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , int* pIndexJoint, float* pWeightJoint, Mesh* pMesh );
+	void modifyVertexByJointInitKernel( float* pVertexArrayStatic , float* pVertexArrayDynamic , float* pIndexJoint, float* pWeightJoint, Mesh* pMesh );
 
 	void modifyVertexByJoint();
 	void modifyVertexByJointKernel( float* pVertexArrayDynamic , int* pIndexJoint, Mesh* pMesh );

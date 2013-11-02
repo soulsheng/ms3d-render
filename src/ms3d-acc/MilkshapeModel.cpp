@@ -19,21 +19,11 @@
 #define STRINGIFY(A) #A
 
 // Vertex Shader
+#if SIZE_PER_BONE == 1
 const char * vertexShaderSource = STRINGIFY(
 uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
-//uniform vec4	matrix[77*4]; // 新增参数，传递骨骼矩阵
 void main()
 {
-	// gl_Position = ftransform(); 默认矩阵变换改为以下自定义矩阵变换
-	/*
-	int  index = int(gl_Vertex.w) * 4; // 获取矩阵索引
-
-	mat4 worldMatrix;
-	worldMatrix[0] = matrix[index];
-	worldMatrix[1] = matrix[index + 1];
-	worldMatrix[2] = matrix[index + 2];
-	worldMatrix[3] = vec4(0);//matrix[index + 3];
-	*/
 	int  index = int(gl_Vertex.w); // 获取矩阵索引
 	mat4 worldMatrix = matrix[index];
 
@@ -45,6 +35,35 @@ void main()
 }
 
 );
+
+#else // SIZE_PER_BONE > 1
+
+const char * vertexShaderSource = STRINGIFY(
+uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
+//uniform vec4	matrix[77*4]; // 新增参数，传递骨骼矩阵
+
+uniform int		boneNumber;		// 骨骼数目，每个顶点绑定的
+attribute vec2  blendIndices ;	// 骨骼索引
+attribute vec2	blendWeights;	// 骨骼权重
+void main()
+{
+	vec3 blendPos = vec3(0.0);
+
+	for (int i=0; i<boneNumber;i++)
+	{
+		int index = int(blendIndices[i]);	// 获取矩阵索引
+		float weight = blendWeights[i];	// 获取矩阵权重
+		blendPos += (gl_Vertex * matrix[index]).xyz * weight;
+	}
+
+	// 在视图矩阵变换前，先进行骨骼矩阵变换
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(blendPos, 1.0);  
+
+	gl_FrontColor = gl_Color; // 默认不变
+}
+
+);
+#endif
 
 // Vertex Shader Code
 const char * pixelShaderSource = STRINGIFY(
@@ -343,11 +362,20 @@ void MilkshapeModel::renderVBO()
 	//glUniform4fv( _locationUniform, m_usNumJoints*4 , (GLfloat*)m_pJointsMatrix );
 
 #if ENABLE_MATRIX_PARAM
-	glUniformMatrix4fv( _locationUniform, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
+	glUniformMatrix4fv( _locationUniformMatrix, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
 #else
-	glUniform4fv( _locationUniform, m_usNumJoints*3 , (GLfloat*)m_pJointsMatrix43 );
+	glUniform4fv( _locationUniformMatrix, m_usNumJoints*3 , (GLfloat*)m_pJointsMatrix43 );
 #endif
 	//glUniform4fv( _locationUniform, 24*3 , (GLfloat*)m_pJointsMatrix43 );
+
+	glUniform1i( _locationUniformMultiBone, SIZE_PER_BONE );
+
+	Ms3dVertexArrayMesh* pMesh = m_meshVertexData.m_pMesh + m_meshVertexData.m_numberOfMesh;
+	glEnableVertexAttribArray( _locationAttributeIndex );
+	glVertexAttribPointer( _locationAttributeIndex, 2, GL_FLOAT, GL_FALSE, 0, pMesh->pIndexJoint );
+
+	glEnableVertexAttribArray( _locationAttributeWeight );
+	glVertexAttribPointer( _locationAttributeWeight, 2, GL_FLOAT, GL_FALSE, 0, pMesh->pWeightJoint );
 
 	glUseProgram(glProgram);
 #else
@@ -428,7 +456,7 @@ void MilkshapeModel::modifyVBO()
 		
 		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[x].pVertexArrayRaw;
 
-		int* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
+		float* pIndexJoint = m_meshVertexData.m_pMesh[x].pIndexJoint;
 		float* pWeightJoint = m_meshVertexData.m_pMesh[x].pWeightJoint;
 
 #if ENABLE_MESH_MIX
@@ -627,7 +655,7 @@ void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, 
 		float* pVertexArrayRaw = m_meshVertexData.m_pMesh[i].pVertexArrayRaw;
 		float* pVertexArrayDynamic = m_meshVertexData.m_pMesh[i].pVertexArrayDynamic;
 
-		int* pIndexJoint = m_meshVertexData.m_pMesh[i].pIndexJoint;
+		float* pIndexJoint = m_meshVertexData.m_pMesh[i].pIndexJoint;
 		float* pWeightJoint = m_meshVertexData.m_pMesh[i].pWeightJoint;
 
 		OCLKernelArguments	&kernelArg = m_oclKernelArg[i];
@@ -718,11 +746,11 @@ void MilkshapeModel::SetupGLSL()
 	}
 
 	// Parameter 参数绑定
-	_locationUniform = glGetUniformLocation( glProgram, "matrix");
-#if 0
-	_locationUniform[1] = glGetUniformLocation( glProgram, "boneNumber");
-	_locationAttrib[0] = glGetAttribLocation( glProgram, "blendIndices");
-	_locationAttrib[1] = glGetAttribLocation( glProgram, "blendWeights");
+	_locationUniformMatrix = glGetUniformLocation( glProgram, "matrix");
+	_locationUniformMultiBone = glGetUniformLocation( glProgram, "boneNumber");
+#if 1
+	_locationAttributeIndex = glGetAttribLocation( glProgram, "blendIndices");
+	_locationAttributeWeight = glGetAttribLocation( glProgram, "blendWeights");
 #endif
 
 	// Program 试运行

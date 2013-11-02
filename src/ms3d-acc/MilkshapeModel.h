@@ -71,7 +71,11 @@ protected:
 		GLuint vertexShader, pixelShader;
 		GLuint glProgram;
 
-		int   _locationUniform; // 参数位置
+		int   _locationUniformMatrix;		// 参数位置，矩阵数据
+		int   _locationUniformMultiBone;	// 参数位置，每个顶点绑定的骨骼数
+
+		int   _locationAttributeIndex;		// 参数位置，矩阵索引
+		int   _locationAttributeWeight;		// 参数位置，矩阵权重
 };
 
 #endif // ndef MILKSHAPEMODEL_H
