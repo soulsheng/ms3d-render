@@ -18,13 +18,28 @@
 
 #define STRINGIFY(A) #A
 
-// Vertex Shader Code
+// Vertex Shader
 const char * vertexShaderSource = STRINGIFY(
-	void main()
-	{
-		gl_Position = ftransform();// 等效于： glPosition = gl_ModelViewProjectionMatrix * gl_Vertex;
-		gl_FrontColor = gl_Color;
-	}
+//uniform mat4	matrix[100]; // 新增参数，传递骨骼矩阵
+uniform vec4	matrix[77*3]; // 新增参数，传递骨骼矩阵
+void main()
+{
+	// gl_Position = ftransform(); 默认矩阵变换改为以下自定义矩阵变换
+	int  index = int(gl_Vertex.w) * 3; // 获取矩阵索引
+
+	mat4 worldMatrix;
+	worldMatrix[0] = matrix[index];
+	worldMatrix[1] = matrix[index + 1];
+	worldMatrix[2] = matrix[index + 2];
+	worldMatrix[3] = vec4(0);//matrix[index + 3];
+
+	vec3 blendPos = (gl_Vertex * worldMatrix).xyz ;
+	// 在视图矩阵变换前，先进行骨骼矩阵变换
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(blendPos, 1.0);  
+
+	gl_FrontColor = gl_Color; // 默认不变
+}
+
 );
 
 // Vertex Shader Code
@@ -188,6 +203,7 @@ bool MilkshapeModel::loadModelData( const char *filename )
 	m_pJoints = new MS3DJoint[m_usNumJoints];
 	//m_pJointsMatrix = new float[m_usNumJoints*16];
 	m_pJointsMatrix = (float*) _aligned_malloc(m_usNumJoints*ELEMENT_COUNT_MATIRX * sizeof(float), 16);
+	m_pJointsMatrix43 = new float[m_usNumJoints * MATRIX_SIZE_LINE * 3] ;
 
 	//Read in joint info
 	for(int x = 0; x < m_usNumJoints; x++)
@@ -314,7 +330,13 @@ void MilkshapeModel::renderVBO()
 	updateJoints(fTime);
 #endif
 
-#if ENABLE_GLSL_4CPP				
+#if ENABLE_GLSL_4CPP		
+	
+	//glUniformMatrix4fv( _locationUniform, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
+	//glUniform4fv( _locationUniform, m_usNumJoints*4 , (GLfloat*)m_pJointsMatrix );
+	glUniform4fv( _locationUniform, m_usNumJoints*3 , (GLfloat*)m_pJointsMatrix43 );
+	//glUniform4fv( _locationUniform, 24*3 , (GLfloat*)m_pJointsMatrix43 );
+
 	glUseProgram(glProgram);
 #else
 	modifyVBO();
@@ -349,7 +371,7 @@ void MilkshapeModel::renderVBO()
 			glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 			glEnableClientState( GL_VERTEX_ARRAY );
 #else
-			glVertexPointer( 3, GL_FLOAT, ELEMENT_COUNT_POINT*sizeof(float) , BUFFER_OFFSET( 0 ) );
+			glVertexPointer( 4, GL_FLOAT, ELEMENT_COUNT_POINT*sizeof(float) , BUFFER_OFFSET( 0 ) );
 			glEnableClientState( GL_VERTEX_ARRAY );
 #endif
 
@@ -682,9 +704,10 @@ void MilkshapeModel::SetupGLSL()
 		glDeleteProgram(glProgram);
 		glProgram = 0;
 	}
-#if 0
+
 	// Parameter 参数绑定
-	_locationUniform[0] = glGetUniformLocation( glProgram, "matrixLine");
+	_locationUniform = glGetUniformLocation( glProgram, "matrix");
+#if 0
 	_locationUniform[1] = glGetUniformLocation( glProgram, "boneNumber");
 	_locationAttrib[0] = glGetAttribLocation( glProgram, "blendIndices");
 	_locationAttrib[1] = glGetAttribLocation( glProgram, "blendWeights");

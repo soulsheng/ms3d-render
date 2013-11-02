@@ -70,6 +70,8 @@ protected:
 		// glsl
 		GLuint vertexShader, pixelShader;
 		GLuint glProgram;
+
+		int   _locationUniform; // ≤Œ ˝Œª÷√
 };
 
 #endif // ndef MILKSHAPEMODEL_H

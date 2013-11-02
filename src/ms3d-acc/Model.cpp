@@ -105,6 +105,12 @@ Model::~Model()
 		m_pJointsMatrix = NULL;
 	}
 	
+	if (m_pJointsMatrix43)
+	{
+		delete[] m_pJointsMatrix43;
+		m_pJointsMatrix43 = NULL;
+	}
+
 	for (int i = 0; i< m_oclKernelArg.size(); i++)
 	{
 		clReleaseMemObject( m_oclKernelArg[i].m_pfInputBuffer );
@@ -291,7 +297,7 @@ void Model::updateJoints(float fTime)
 	for (int i=0;i<m_usNumJoints;i++)
 	{
 
-#if (ENABLE_OPTIMIZE_SSE)&&(ELEMENT_COUNT_POINT==3)
+#if (ENABLE_OPTIMIZE_SSE)&&(ELEMENT_COUNT_POINT==3) || ENABLE_MATRIX_TRANSPOSE
 
 		for (int j=0;j<4;j++)
 		{
@@ -300,6 +306,16 @@ void Model::updateJoints(float fTime)
 				float* pDst = m_pJointsMatrix+16*i;
 				float* pSrc = m_pJoints[i].m_matFinal.Get();
 				pDst[j*4+k] = pSrc[k*4+j];
+			}
+		}
+
+		for (int j=0;j<3;j++)
+		{
+			for (int k=0;k<4;k++)
+			{
+				float* pDst = m_pJointsMatrix43+12*i;
+				float* pSrc = m_pJointsMatrix+16*i;
+				pDst[j*4+k] = pSrc[j*4+k];
 			}
 		}
 #else

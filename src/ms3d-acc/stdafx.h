@@ -102,3 +102,4 @@ using namespace std;
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
 
 #define ENABLE_GLSL_4CPP	1// GLSL计算顶点
+#define ENABLE_MATRIX_TRANSPOSE	1// 矩阵转置， 行优先或列优先 状态切换
