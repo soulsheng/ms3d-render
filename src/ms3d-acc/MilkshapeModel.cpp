@@ -33,7 +33,7 @@ void main()
 	worldMatrix[2] = matrix[index + 2];
 	worldMatrix[3] = vec4(0);//matrix[index + 3];
 
-	vec3 blendPos = (gl_Vertex * worldMatrix).xyz ;
+	vec3 blendPos = ( vec4(gl_Vertex.xyz, 1.0) * worldMatrix).xyz ;
 	// 在视图矩阵变换前，先进行骨骼矩阵变换
 	gl_Position = gl_ModelViewProjectionMatrix * vec4(blendPos, 1.0);  
 
@@ -304,8 +304,11 @@ void MilkshapeModel::initializeVBO()
 		int nSizeBufferVertex = ELEMENT_COUNT_POINT * pMesh->numOfVertex * sizeof(float);
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, _idGPURenderItemsPerMesh[i]);
-
+#if ENABLE_GLSL_4CPP
+		glBufferDataARB(GL_ARRAY_BUFFER_ARB, nSizeBufferVertex, pMesh->pVertexArrayRaw, GL_STATIC_DRAW_ARB);
+#else
 		glBufferDataARB(GL_ARRAY_BUFFER_ARB, nSizeBufferVertex, pMesh->pVertexArrayDynamic, GL_STATIC_DRAW_ARB);
+#endif
 	
 	}
 
