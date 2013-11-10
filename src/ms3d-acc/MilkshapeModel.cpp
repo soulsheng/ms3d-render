@@ -447,16 +447,16 @@ void MilkshapeModel::renderVBO()
 #if ENABLE_GLSL_4CPP		
 	
 	
-
+#if TIME_CL_MEMERY_WRITE
 #if ENABLE_MATRIX_PARAM
 	glUniformMatrix4fv( _locationUniformMatrix, m_usNumJoints , GL_FALSE, (GLfloat*)m_pJointsMatrix );
 #else
 	glUniform4fv( _locationUniformMatrix, m_usNumJoints*3 , (GLfloat*)m_pJointsMatrix43 );
 #endif
-	
+#endif	
 
 
-#if SIZE_PER_BONE>1
+#if TIME_CL_MEMERY_WRITE && SIZE_PER_BONE>1
 	glUniform1i( _locationUniformMultiBone, SIZE_PER_BONE );
 
 	
