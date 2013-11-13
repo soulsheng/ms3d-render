@@ -41,13 +41,13 @@ using namespace std;
 #endif
 #endif
 
-#define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
+#define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
 #define RENDERMODE_MOVING	1	//  1 动画
 
 #define ENABLE_CONSOLE_WINDOW	1	// 1 打开另一个控制台窗口
-#define ENABLE_TIMER		1		// 1 计时
+#define ENABLE_TIMER		0		// 1 计时
 #define ENABLE_FPS_COUNT	0		// 1 帧速
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
@@ -82,10 +82,9 @@ using namespace std;
 #define ENABLE_OPENCL_CPU	1	//OpenCL CPU
 #define SIZE_OPENCL_TEST	(1<<16)	// 测试64K顶点, MESH[1]
 
-#define NAME_STRING_PLATFORM_1	"Advanced Micro Devices, Inc."
-#define NAME_STRING_PLATFORM_4	"Intel(R) OpenCL"
-#define NAME_STRING_PLATFORM_3	"AMD Accelerated Parallel Processing"
-#define NAME_STRING_PLATFORM	"NVIDIA CUDA"
+#define NAME_STRING_PLATFORM	"AMD Accelerated Parallel Processing"
+#define NAME_STRING_PLATFORM_2	"NVIDIA CUDA"
+#define NAME_STRING_PLATFORM_3	"Intel(R) OpenCL"
 
 #define  LocalWorkX		8
 #define  LocalWorkY		8
@@ -95,7 +94,7 @@ using namespace std;
 
 #define ENABLE_MESH_MIX		1//合并mesh
 
-#define ENABLE_CL_GL_INTER	1//OpenCl OpenGL 互操作
+#define ENABLE_CL_GL_INTER	0//OpenCl OpenGL 互操作
 
 #define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
