@@ -27,7 +27,9 @@ int CTimerOMP::resetTimer(int handle)
 
 int CTimerOMP::startTimer(int handle)
 {
+#if ENABLE_TIMER_WARNUP
 	warmup();
+#endif
 
 	_start = omp_get_wtime();
 
