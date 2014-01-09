@@ -79,7 +79,7 @@ using namespace std;
 
 #define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)
 
-#define ENABLE_OPENCL_CPU	1	//OpenCL CPU
+#define ENABLE_OPENCL	1	//OpenCL ¿ª¹Ø
 #define SIZE_OPENCL_TEST	(1<<16)	// ²âÊÔ64K¶¥µã, MESH[1]
 
 #define NAME_STRING_PLATFORM	"AMD Accelerated Parallel Processing"

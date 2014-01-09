@@ -417,7 +417,7 @@ void Model::modifyVertexByJoint()
 {
 	
 	// 遍历每个Mesh，根据Joint更新每个Vertex的坐标
-#if ENABLE_OPENCL_CPU
+#if ENABLE_OPENCL
 	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
 #else
 	int x = 1;

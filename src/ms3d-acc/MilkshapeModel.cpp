@@ -351,7 +351,7 @@ void MilkshapeModel::renderVBO()
 
 void MilkshapeModel::modifyVBO()
 {
-#if ENABLE_OPENCL_CPU
+#if ENABLE_OPENCL
 	ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
 #else
 // 遍历每个Mesh，根据Joint更新每个Vertex的坐标

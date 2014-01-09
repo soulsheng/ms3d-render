@@ -172,7 +172,7 @@ bool COclManager::Setup_OpenCL( const char *program_source , const char *kernel_
 	{
 		m_model[i].loadModelData(FILENAME_MS3D);
 		m_model[i].reloadTextures();										// Loads Model Textures
-#if ENABLE_OPENCL_CPU
+#if ENABLE_OPENCL
 		m_model[i].SetupKernel( g_context, g_device_ID, g_kernel, g_cmd_queue );
 #endif
 	}
