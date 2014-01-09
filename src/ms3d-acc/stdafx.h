@@ -60,7 +60,7 @@ using namespace std;
 
 #define ENABLE_OPTIMIZE	1 //优化
 
-#define ENABLE_OPENMP	1 //OpenMP
+#define ENABLE_OPENMP	0 //OpenMP
 
 #define ENABLE_CROSSARRAY	0 //交错数组
 
@@ -80,3 +80,5 @@ using namespace std;
 #define ELEMENT_COUNT_MATIRX	(MATRIX_SIZE_LINE*4)
 
 #define SCALE_SIZE		1 // 模型缩放
+
+#define ENABLE_TIMER_WARNUP	0// 测时前预热

@@ -47,7 +47,9 @@ int CTimer::startTimer(int handle)
         return SDK_FAILURE;
     }
 
-	warmup();
+	#if ENABLE_TIMER_WARNUP
+		warmup();
+	#endif
 
 #ifdef _WIN32
     QueryPerformanceCounter((LARGE_INTEGER*)&(_timers[handle]->_start));	
