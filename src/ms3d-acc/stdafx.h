@@ -41,7 +41,7 @@ using namespace std;
 #endif
 #endif
 
-#define RENDERMODE_VBO		0	//	1渲染模式VBO, 0渲染模式常规
+#define RENDERMODE_VBO		1	//	1渲染模式VBO, 0渲染模式常规
 #define RENDERMODE_POINT	0	//	1渲染点,  0渲染面
 
 #define RENDERMODE_MOVING	1	//  1 动画
@@ -94,8 +94,14 @@ using namespace std;
 
 #define ENABLE_MESH_MIX		1//合并mesh
 
+#if RENDERMODE_VBO
+#define ENABLE_CL_GL_INTER	1//OpenCl OpenGL 互操作
+#else
 #define ENABLE_CL_GL_INTER	0//OpenCl OpenGL 互操作
+#endif
 
 #define TIME_CL_MEMERY_READ		1// 测量OpenCL内存数据传输时间，读
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
+
+#define OPENCL_DEVICE_CPU	1// OpenCL 设备—— 1:CPU / 0:GPU
