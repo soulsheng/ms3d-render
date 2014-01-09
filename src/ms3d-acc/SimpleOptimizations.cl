@@ -17,7 +17,7 @@
 // 
 // Intel Corporation is the author of the Materials, and requests that all
 // problem reports or change requests be submitted to it directly
-#define SIZE_PER_BONE		1 //每个顶点关联骨骼的数目
+#define SIZE_PER_BONE		2 //每个顶点关联骨骼的数目
 
 __kernel void
 SimpleKernel( const __global float *input, __global float *output)
