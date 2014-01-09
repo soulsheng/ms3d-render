@@ -115,7 +115,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\dependence\include\;$(INTELOCLSDKROOT)\include;..\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\dependence\include\;$(AMDAPPSDKROOT)\include;..\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -138,7 +138,7 @@
       <AdditionalDependencies>opengl32.lib;glu32.lib;glaux.lib;odbc32.lib;odbccp32.lib;opencl.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\dependence\lib\share\;$(ProjectDir)..\..\dependence\lib\share\cuda\;$(ProjectDir)..\..\dependence\lib\share\cuda\common;$(ProjectDir)..\..\dependence\lib\$(Configuration)\cuda;$(INTELOCLSDKROOT)\lib\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\dependence\lib\share\;$(ProjectDir)..\..\dependence\lib\share\cuda\;$(ProjectDir)..\..\dependence\lib\share\cuda\common;$(ProjectDir)..\..\dependence\lib\$(Configuration)\cuda;$(AMDAPPSDKROOT)\lib\x86</AdditionalLibraryDirectories>
       <ProgramDatabaseFile>$(OutDir)$(TargetName).pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
