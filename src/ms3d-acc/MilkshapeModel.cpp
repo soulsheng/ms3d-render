@@ -492,7 +492,7 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 		int nElementSize = m_pMeshes[i].m_usNumTris * 3;
 #endif//ENABLE_MESH_MIX
 
-#if  ENABLE_CL_GL_INTER
+#if  ENABLE_CL_GL_INTER&&TIME_CL_MEMERY_READ
 		clEnqueueAcquireGLObjects(_cmd_queue, 1, &m_oclKernelArg[i].m_pfOCLOutputBuffer, 0, 0, NULL);
 #endif//ENABLE_CL_GL_INTER
 
@@ -534,7 +534,7 @@ bool MilkshapeModel::ExecuteKernel( cl_context pContext, cl_device_id pDevice_ID
 			printf("ERROR: Failed to clEnqueueReadBuffer...\n");
 			return false;
 		}
-#else
+#elif TIME_CL_MEMERY_READ
 		clEnqueueReleaseGLObjects(_cmd_queue, 1, &m_oclKernelArg[i].m_pfOCLOutputBuffer, 0, 0, 0);
 #endif//ENABLE_CL_GL_INTER
 		clFinish(_cmd_queue);
@@ -607,6 +607,10 @@ void MilkshapeModel::SetupKernel( cl_context pContext, cl_device_id pDevice_ID, 
 		{
 			//continue;
 		}
+
+		updateJoints(0);
+		ExecuteKernel( _context, _device_ID, _kernel, _cmd_queue );
+
 	}
 
 }
