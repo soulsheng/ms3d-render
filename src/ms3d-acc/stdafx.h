@@ -47,7 +47,7 @@ using namespace std;
 #define RENDERMODE_MOVING	1	//  1 动画
 
 #define ENABLE_CONSOLE_WINDOW	1	// 1 打开另一个控制台窗口
-#define ENABLE_TIMER		1		// 1 计时
+#define ENABLE_TIMER		0		// 1 计时
 #define ENABLE_FPS_COUNT	0		// 1 帧速
 
 #define ENABLE_TIMER_VBO_MAP		0		// 1 VBO计时MAP/UNMAP
@@ -82,9 +82,9 @@ using namespace std;
 #define ENABLE_OPENCL	1	//OpenCL 开关
 #define SIZE_OPENCL_TEST	(1<<16)	// 测试64K顶点, MESH[1]
 
-#define NAME_STRING_PLATFORM	"AMD Accelerated Parallel Processing"
+#define NAME_STRING_PLATFORM_3	"AMD Accelerated Parallel Processing"
 #define NAME_STRING_PLATFORM_2	"NVIDIA CUDA"
-#define NAME_STRING_PLATFORM_3	"Intel(R) OpenCL"
+#define NAME_STRING_PLATFORM	"Intel(R) OpenCL"
 
 #define  LocalWorkX		8
 #define  LocalWorkY		8
