@@ -82,9 +82,6 @@ using namespace std;
 #define ENABLE_OPENCL	1	//OpenCL 开关
 #define SIZE_OPENCL_TEST	(1<<16)	// 测试64K顶点, MESH[1]
 
-#define NAME_STRING_PLATFORM_3	"AMD Accelerated Parallel Processing"
-#define NAME_STRING_PLATFORM_2	"NVIDIA CUDA"
-#define NAME_STRING_PLATFORM	"Intel(R) OpenCL"
 
 #define  LocalWorkX		8
 #define  LocalWorkY		8
@@ -104,6 +101,13 @@ using namespace std;
 #define TIME_CL_MEMERY_WRITE	1// 测量OpenCL内存数据传输时间，写
 #define TIME_CL_MEMERY_CALCULATE	1// 测量OpenCL内存数据计算时间
 
-#define OPENCL_DEVICE_CPU	1// OpenCL 设备—— 1:CPU / 0:GPU
+#define OPENCL_DEVICE_CPU	0// OpenCL 设备—— 1:CPU / 0:GPU
+
+#if OPENCL_DEVICE_CPU
+#define NAME_STRING_PLATFORM_3	"AMD Accelerated Parallel Processing"
+#define NAME_STRING_PLATFORM	"Intel(R) OpenCL"
+#else 
+#define NAME_STRING_PLATFORM	"NVIDIA CUDA"
+#endif
 
 #define ENABLE_TIMER_WARNUP	0// 测时前预热
